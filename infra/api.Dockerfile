@@ -1,26 +1,25 @@
 FROM python:3.11-slim
 
-# 設定工作目錄在 /app
+# 1) 以 /app 為根
 WORKDIR /app
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
-# 安裝系統相依
 RUN apt-get update && apt-get install -y build-essential && rm -rf /var/lib/apt/lists/*
 
-# 安裝 Python 相依
+# 2) 先裝相依
 COPY apps/api/requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
-# 複製 API 原始碼
+# 3) 複製原始碼（包含 src/main.py）
 COPY apps/api /app
 
-# 切換到 src 目錄，這裡有 main.py
+# 4) 切到 src，之後的相對匯入就找得到 main.py
 WORKDIR /app/src
 
 ENV PORT=8000
 EXPOSE 8000
 
-# 用 gunicorn 啟動 main.py 內的 app
+# 5) 直接以 main:app 啟動
 CMD ["sh","-c","gunicorn -w 2 -k gthread -b 0.0.0.0:${PORT} main:app"]
