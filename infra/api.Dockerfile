@@ -16,7 +16,7 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 # 複製 API 原始碼
 COPY apps/api /app
 
-# 切換到 src 目錄，這裡會有 main.py
+# 切換到 src 目錄，這裡有 main.py
 WORKDIR /app/src
 
 ENV PORT=8000
