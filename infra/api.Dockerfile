@@ -1,20 +1,18 @@
-# API Dockerfile
 FROM python:3.11-slim
-
 WORKDIR /app
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+RUN apt-get update && apt-get install -y build-essential && rm -rf /var/lib/apt/lists/*
 
-ENV PYTHONDONTWRITEBYTECODE=1     PYTHONUNBUFFERED=1
-
-# System deps
-RUN apt-get update && apt-get install -y build-essential curl && rm -rf /var/lib/apt/lists/*
-
-# Copy and install
+# deps
 COPY apps/api/requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
-# Copy source
+# src
 COPY apps/api /app
 
-# Expose & run
+# runtime
 ENV PORT=8000
-CMD ["sh", "-c", "gunicorn -w 4 -k uvicorn.workers.UvicornWorker src.main:app --bind 0.0.0.0:${PORT}"]
+EXPOSE 8000
+# 關鍵：src.main:app（因為程式碼被 COPY 到 /app）
+CMD ["sh","-c","gunicorn -w 2 -k gthread -b 0.0.0.0:${PORT} src.main:app"]
+
