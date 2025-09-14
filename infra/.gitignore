@@ -1,0 +1,9 @@
+# Infra ignores
+node_modules/
+venv/
+.venv/
+*.db
+*.sqlite*
+.env
+__pycache__/
+.DS_Store
