@@ -23,5 +23,11 @@ WORKDIR /app/src
 ENV PORT=8000
 EXPOSE 8000
 
+<<<<<<< HEAD
 # 7) 啟動 gunicorn，指向 main.py 裡的 app 物件
 CMD ["sh", "-c", "gunicorn -w 2 -k gthread -b 0.0.0.0:${PORT} main:app"]
+=======
+# 用 gunicorn 啟動 Flask app：src.main:app
+CMD ["gunicorn", "-w", "2", "-k", "gthread", "-b", "0.0.0.0:${PORT}", "src.main:app"]
+
+>>>>>>> c153604 (fix(api): correct Gunicorn CMD and add __init__.py for module import)
