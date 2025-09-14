@@ -27,5 +27,5 @@ ENV PORT=8000
 EXPOSE 8000
 
 # 用 gunicorn 啟動 Flask app：main:app
-CMD ["gunicorn", "-w", "2", "-k", "gthread", "-b", "0.0.0.0:${PORT}", "main:app"]
+CMD ["gunicorn", "-w", "2", "-k", "gthread", "-b", "0.0.0.0:8000", "main:app"]
 
