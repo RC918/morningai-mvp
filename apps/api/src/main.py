@@ -1,9 +1,11 @@
 
 import os
 from flask import Flask, request, jsonify
-from flask_sqlalchemy import SQLAlchemy
 import requests # For Upstash Redis REST API
 from dotenv import load_dotenv
+from models import db, User, Tenant
+from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt
+from auth import hash_password, verify_password, create_tokens, authenticate_user, register_user
 
 load_dotenv()
 
@@ -12,7 +14,13 @@ app = Flask(__name__)
 # Database Configuration
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-db = SQLAlchemy(app)
+
+# JWT Configuration
+app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "your-secret-key-change-this-in-production")
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = False  # We'll handle expiration manually
+
+db.init_app(app)
+jwt = JWTManager(app)
 
 # Redis Configuration for Upstash (REST API based)
 UPSTASH_REDIS_REST_URL = os.getenv("UPSTASH_REDIS_REST_URL")
@@ -35,8 +43,7 @@ def upstash_redis_command(command, *args):
         print(f"Upstash Redis command failed: {e}")
         return None
 
-# Import models after db is initialized
-from src.models import User, Tenant
+# Models are already imported at the top
 
 # Multi-tenancy Middleware (simplified for demonstration)
 @app.before_request
@@ -113,6 +120,101 @@ def tenants():
     else:
         tenants = Tenant.query.all()
         return jsonify([{"id": tenant.id, "name": tenant.name, "schema_name": tenant.schema_name} for tenant in tenants])
+
+# Authentication Routes
+@app.route("/auth/register", methods=["POST"])
+def register():
+    data = request.get_json()
+    
+    # Validate required fields
+    required_fields = ["username", "email", "password", "tenant_id"]
+    for field in required_fields:
+        if field not in data:
+            return jsonify({"message": f"Missing required field: {field}"}), 400
+    
+    user, error = register_user(
+        username=data["username"],
+        email=data["email"],
+        password=data["password"],
+        tenant_id=data["tenant_id"]
+    )
+    
+    if error:
+        return jsonify({"message": error}), 400
+    
+    # Create tokens for the new user
+    access_token, refresh_token = create_tokens(user.id, user.tenant_id)
+    
+    return jsonify({
+        "message": "User registered successfully",
+        "user_id": user.id,
+        "access_token": access_token,
+        "refresh_token": refresh_token
+    }), 201
+
+@app.route("/auth/login", methods=["POST"])
+def login():
+    data = request.get_json()
+    
+    # Validate required fields
+    if "username" not in data or "password" not in data:
+        return jsonify({"message": "Username and password are required"}), 400
+    
+    user = authenticate_user(data["username"], data["password"])
+    
+    if not user:
+        return jsonify({"message": "Invalid username or password"}), 401
+    
+    # Create tokens
+    access_token, refresh_token = create_tokens(user.id, user.tenant_id)
+    
+    return jsonify({
+        "message": "Login successful",
+        "user_id": user.id,
+        "tenant_id": user.tenant_id,
+        "access_token": access_token,
+        "refresh_token": refresh_token
+    }), 200
+
+@app.route("/auth/refresh", methods=["POST"])
+@jwt_required(refresh=True)
+def refresh():
+    current_user_id = int(get_jwt_identity())  # Convert back to int
+    claims = get_jwt()
+    tenant_id = claims.get("tenant_id")
+    
+    # Create new access token
+    access_token, _ = create_tokens(current_user_id, tenant_id)
+    
+    return jsonify({
+        "access_token": access_token
+    }), 200
+
+@app.route("/auth/profile", methods=["GET"])
+@jwt_required()
+def profile():
+    current_user_id = int(get_jwt_identity())  # Convert back to int
+    claims = get_jwt()
+    tenant_id = claims.get("tenant_id")
+    
+    user = User.query.get(current_user_id)
+    if not user:
+        return jsonify({"message": "User not found"}), 404
+    
+    return jsonify({
+        "user_id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "tenant_id": user.tenant_id,
+        "created_at": user.created_at.isoformat() if user.created_at else None
+    }), 200
+
+@app.route("/auth/logout", methods=["POST"])
+@jwt_required()
+def logout():
+    # In a production environment, you would typically add the JWT to a blacklist
+    # For now, we'll just return a success message
+    return jsonify({"message": "Logout successful"}), 200
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=5000)
