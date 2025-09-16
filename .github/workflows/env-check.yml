@@ -30,8 +30,8 @@ jobs:
           SMTP_USER=${{ secrets.SMTP_USER }}
           SMTP_PASS=${{ secrets.SMTP_PASS }}
           EOF
-      - name: Install deps
-        run: npm i
+      - name: Install deps for web app
+        run: cd apps/web && npm i
       - name: Run Env Check
         run: node scripts/check_env.mjs
         env:
