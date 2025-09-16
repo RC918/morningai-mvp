@@ -1,13 +1,9 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import { Toaster } from '@/components/ui/toaster'
+import { Toaster } from '@/components/ui/sonner'
 import Sidebar from '@/components/Sidebar'
 import Dashboard from '@/components/Dashboard'
-import StrategyManagement from '@/components/StrategyManagement'
-import DecisionApproval from '@/components/DecisionApproval'
-import HistoryAnalysis from '@/components/HistoryAnalysis'
-import CostAnalysis from '@/components/CostAnalysis'
-import SystemSettings from '@/components/SystemSettings'
+
 import LoginPage from '@/components/LoginPage'
 import './App.css'
 
@@ -81,11 +77,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/strategies" element={<StrategyManagement />} />
-            <Route path="/approvals" element={<DecisionApproval />} />
-            <Route path="/history" element={<HistoryAnalysis />} />
-            <Route path="/costs" element={<CostAnalysis />} />
-            <Route path="/settings" element={<SystemSettings />} />
+
           </Routes>
         </main>
         
