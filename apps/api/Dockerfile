@@ -1,17 +1,19 @@
 FROM python:3.9-slim-buster
 
+# Set the working directory to /app
 WORKDIR /app
 
+# Copy requirements first to leverage Docker cache
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy the rest of the application code
 COPY . .
 
-# Set PYTHONPATH to include the current directory (which is /app) and the src subdirectory
-ENV PYTHONPATH=/app:/app/src
+# Change the working directory to the src folder
+WORKDIR /app/src
 
 # Use gunicorn to serve the Flask application
 # The format is 'module_name:app_instance_name'
-# Since main.py is in src, and the app instance is named 'app' in main.py
-# it should be src.main:app
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "src.main:app"]
+# Since we are in the 'src' directory, it's just 'main:app'
+CMD ['gunicorn', '-w', '4', '-b', '0.0.0.0:5000', 'main:app']
