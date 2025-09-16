@@ -11,7 +11,5 @@ COPY . .
 ENV PYTHONPATH=/app:/app/src
 
 # Use gunicorn to serve the Flask application
-# The format is 'module_name:app_instance_name'
-# Since main.py is in src, and the app instance is named 'app' in main.py
-# it should be src.main:app
-CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "src.main:app"]
+# Explicitly set --pythonpath to ensure src is in the Python path
+CMD ["gunicorn", "-w", "4", "-b", "0.0.0.0:5000", "--pythonpath", "src", "src.main:app"]
