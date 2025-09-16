@@ -7,13 +7,14 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application code from apps/api to /app
+# Copy the entire apps/api directory content to /app
 COPY . .
 
-# Debugging steps: List files and print Python path
+# Debugging steps: List files and print Python path at /app
 RUN echo "--- Listing files in /app ---"
-RUN ls -R /app
-RUN echo "--- Python Path ---"
+RUN ls -F /app
+RUN ls -F /app/src
+RUN echo "--- Python Path at /app ---"
 RUN python -c "import sys; print(sys.path)"
 
 # Use gunicorn to serve the Flask application
