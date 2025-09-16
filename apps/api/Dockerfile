@@ -13,13 +13,6 @@ COPY . .
 # Set PYTHONPATH to include /app, so Python can find modules in /app/src
 ENV PYTHONPATH=/app
 
-# Debugging steps: List files and print Python path at /app
-RUN echo "--- Listing files in /app ---"
-RUN ls -F /app
-RUN ls -F /app/src
-RUN echo "--- Python Path at /app ---"
-RUN python -c "import sys; print(sys.path)"
-
 # Use gunicorn to serve the Flask application
 # The format is 'module_name:app_instance_name'
 # Since the app is in src/main.py, and WORKDIR is /app, we reference it as src.main:app
