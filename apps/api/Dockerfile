@@ -11,6 +11,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Install the application as an editable package
+# This creates an .egg-info directory and adds the package to sys.path
+# This is crucial for Python to find modules within the project structure
 RUN pip install -e .
 
 # Set PYTHONPATH to include /app, so Python can find modules in /app/src
