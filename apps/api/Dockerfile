@@ -7,8 +7,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Set PYTHONPATH to include the src subdirectory within the WORKDIR
-ENV PYTHONPATH=/app/src
+# Set PYTHONPATH to include the current directory (which is /app) and the src subdirectory
+ENV PYTHONPATH=/app:/app/src
 
 # Use gunicorn to serve the Flask application
 # The format is 'module_name:app_instance_name'
