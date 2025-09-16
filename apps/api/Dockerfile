@@ -11,7 +11,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . .
 
 # Set PYTHONPATH to include /app, so Python can find modules in /app/src
-ENV PYTHONPATH=/app
+ENV PYTHONPATH=/app:/app/src
 
 # Use gunicorn to serve the Flask application
 # The format is 'module_name:app_instance_name'
