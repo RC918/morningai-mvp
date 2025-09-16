@@ -1,0 +1,38 @@
+
+name: Env Check
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  env-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Create .env from GitHub Secrets
+        run: |
+          cat > .env << 'EOF'
+          SUPABASE_URL=${{ secrets.SB_URL }}
+          SUPABASE_ANON_KEY=${{ secrets.SB_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SB_SERVICE_ROLE_KEY }}
+          SUPABASE_JWT_SECRET=${{ secrets.SB_JWT_SECRET }}
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          REDIS_URL=${{ secrets.REDIS_URL }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          EMAIL_FROM=${{ secrets.EMAIL_FROM }}
+          SMTP_HOST=${{ secrets.SMTP_HOST }}
+          SMTP_PORT=${{ secrets.SMTP_PORT }}
+          SMTP_USER=${{ secrets.SMTP_USER }}
+          SMTP_PASS=${{ secrets.SMTP_PASS }}
+          EOF
+      - name: Install deps
+        run: npm i
+      - name: Run Env Check
+        run: node scripts/check_env.mjs
+        env:
+          $(cat .env | xargs) : ""
