@@ -3,7 +3,7 @@ import os
 from flask import Flask, request, jsonify
 import requests # For Upstash Redis REST API
 from dotenv import load_dotenv
-from models import db, User, Tenant
+from src.models import db, User, Tenant
 from flask_jwt_extended import JWTManager, create_access_token, jwt_required, get_jwt_identity, get_jwt
 from auth import hash_password, verify_password, create_tokens, authenticate_user, register_user
 
