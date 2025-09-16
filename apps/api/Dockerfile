@@ -10,6 +10,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the entire apps/api directory content to /app
 COPY . .
 
+# Set PYTHONPATH to include /app, so Python can find modules in /app/src
+ENV PYTHONPATH=/app
+
 # Debugging steps: List files and print Python path at /app
 RUN echo "--- Listing files in /app ---"
 RUN ls -F /app
