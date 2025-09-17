@@ -217,18 +217,18 @@ jobs:
             const jobUrl = `https://github.com/${owner}/${repo}/actions/runs/${context.runId}`;
             
             // Define outcomes from previous steps
-            const webLintOutcome = `${{ steps.web-lint-check.outcome || 'N/A' }}`;
-            const webTypeOutcome = `${{ steps.web-type-check.outcome || 'N/A' }}`;
-            const webUnitTestsOutcome = `${{ steps.web-unit-tests.outcome || 'N/A' }}`;
-            const webImportSmokeTestOutcome = `${{ steps.web-import-smoke-test.outcome || 'N/A' }}`;
-            const apiLintOutcome = `${{ steps.api-lint-check.outcome || 'N/A' }}`;
-            const apiTypeOutcome = `${{ steps.api-type-check.outcome || 'N/A' }}`;
-            const apiUnitTestsOutcome = `${{ steps.api-unit-tests.outcome || 'N/A' }}`;
-            const apiImportSmokeTestOutcome = `${{ steps.api-import-smoke-test.outcome || 'N/A' }}`;
+            const webLintOutcome = '{{ steps.web-lint-check.outcome || "N/A" }}';
+            const webTypeOutcome = '{{ steps.web-type-check.outcome || "N/A" }}';
+            const webUnitTestsOutcome = '{{ steps.web-unit-tests.outcome || "N/A" }}';
+            const webImportSmokeTestOutcome = '{{ steps.web-import-smoke-test.outcome || "N/A" }}';
+            const apiLintOutcome = '{{ steps.api-lint-check.outcome || "N/A" }}';
+            const apiTypeOutcome = '{{ steps.api-type-check.outcome || "N/A" }}';
+            const apiUnitTestsOutcome = '{{ steps.api-unit-tests.outcome || "N/A" }}';
+            const apiImportSmokeTestOutcome = '{{ steps.api-import-smoke-test.outcome || "N/A" }}';
             const envMissing = "${{ steps.extract-env-web.outputs.env_missing || steps.extract-env-api.outputs.env_missing || '無' }}";
-            const apiHealthCheckLocalOutcome = `${{ steps.api-health-check-local.outcome || 'N/A' }}`;
-            const apiHealthCheckOnlineOutcome = `${{ steps.api-health-check-online.outputs.health_online_outcome || 'N/A' }}`;
-            const envCheckOutcome = `${{ steps.env-check-web.outcome || steps.env-check-api.outcome || 'N/A' }}`;
+            const apiHealthCheckLocalOutcome = '{{ steps.api-health-check-local.outcome || "N/A" }}';
+            const apiHealthCheckOnlineOutcome = '{{ steps.api-health-check-online.outputs.health_online_outcome || "N/A" }}';
+            const envCheckOutcome = '{{ steps.env-check-web.outcome || steps.env-check-api.outcome || "N/A" }}';
 
             const envStatus = envMissing === '無' ? 'All good' : `Missing: ${envMissing}`;
             const healthStatus = apiHealthCheckOnlineOutcome === 'success' ? 'PASS' : (apiHealthCheckOnlineOutcome === 'failure' ? 'FAIL' : 'N/A');
