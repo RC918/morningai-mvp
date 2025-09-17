@@ -77,6 +77,12 @@ jobs:
         working-directory: ${{ matrix.app.path }}
         run: npm run test
 
+      - name: Web Import Smoke Test
+        id: web-import-smoke-test
+        if: ${{ matrix.app.name == 'web' }}
+        working-directory: ${{ matrix.app.path }}
+        run: npm run build
+
       - name: Install Python dependencies (api)
         if: ${{ matrix.app.name == 'api' }}
         uses: actions/setup-python@v5
@@ -119,6 +125,12 @@ jobs:
         working-directory: ${{ matrix.app.path }}
         run: pip install pytest && pytest test_health.py
 
+      - name: API Import Smoke Test
+        id: api-import-smoke-test
+        if: ${{ matrix.app.name == 'api' }}
+        working-directory: ${{ matrix.app.path }}
+        run: python -c "import src.main"
+
       - name: API Health Check (Local)
         id: api-health-check-local
         if: ${{ matrix.app.name == 'api' }}
@@ -144,9 +156,11 @@ jobs:
           WEB_LINT_OUTCOME="${{ steps.web-lint-check.outcome || 'N/A' }}"
           WEB_TYPE_OUTCOME="${{ steps.web-type-check.outcome || 'N/A' }}"
           WEB_UNIT_TESTS_OUTCOME="${{ steps.web-unit-tests.outcome || 'N/A' }}"
+          WEB_IMPORT_SMOKE_TEST_OUTCOME="${{ steps.web-import-smoke-test.outcome || 'N/A' }}"
           API_LINT_OUTCOME="${{ steps.api-lint-check.outcome || 'N/A' }}"
           API_TYPE_OUTCOME="${{ steps.api-type-check.outcome || 'N/A' }}"
           API_UNIT_TESTS_OUTCOME="${{ steps.api-unit-tests.outcome || 'N/A' }}"
+          API_IMPORT_SMOKE_TEST_OUTCOME="${{ steps.api-import-smoke-test.outcome || 'N/A' }}"
           ENV_MISSING="${{ steps.extract-env-web.outputs.env_missing || steps.extract-env-api.outputs.env_missing || '無' }}"
           API_HEALTH_CHECK_LOCAL_OUTCOME="${{ steps.api-health-check-local.outcome || 'N/A' }}"
           API_HEALTH_CHECK_ONLINE_OUTCOME="${{ steps.api-health-check-online.outputs.health_online_outcome || 'N/A' }}"
@@ -160,9 +174,11 @@ jobs:
               "web_lint": "'$WEB_LINT_OUTCOME'",
               "web_type": "'$WEB_TYPE_OUTCOME'",
               "web_unit_tests": "'$WEB_UNIT_TESTS_OUTCOME'",
+              "web_import_smoke_test": "'$WEB_IMPORT_SMOKE_TEST_OUTCOME'",
               "api_lint": "'$API_LINT_OUTCOME'",
               "api_type": "'$API_TYPE_OUTCOME'",
-              "api_unit_tests": "'$API_UNIT_TESTS_OUTCOME'"
+              "api_unit_tests": "'$API_UNIT_TESTS_OUTCOME'",
+              "api_import_smoke_test": "'$API_IMPORT_SMOKE_TEST_OUTCOME'"
             },
             "coverage": "N/A",
             "env_missing": "'$ENV_MISSING'",
@@ -208,9 +224,11 @@ jobs:
 - **Web Lint 檢查**: ${{ steps.web-lint-check.outcome || 'N/A' }}
 - **Web Type 檢查**: ${{ steps.web-type-check.outcome || 'N/A' }}
 - **Web 單元測試**: ${{ steps.web-unit-tests.outcome || 'N/A' }}
+- **Web Import Smoke Test**: ${{ steps.web-import-smoke-test.outcome || 'N/A' }}
 - **API Lint 檢查**: ${{ steps.api-lint-check.outcome || 'N/A' }}
 - **API Type 檢查**: ${{ steps.api-type-check.outcome || 'N/A' }}
 - **API 單元測試**: ${{ steps.api-unit-tests.outcome || 'N/A' }}
+- **API Import Smoke Test**: ${{ steps.api-import-smoke-test.outcome || 'N/A' }}
 - **覆蓋率**: N/A (待實作)
 - **健康檢查 (本地)**: ${{ steps.api-health-check-local.outcome || 'N/A' }}
 - **健康檢查 (線上)**: ${{ steps.api-health-check-online.outputs.health_online_outcome || 'N/A' }}
@@ -251,18 +269,7 @@ N/A (待實作)
               console.log('New comment posted successfully');
             }
 
-            // Removed the duplicate comment posting logic
-            // try {
-            //   await github.rest.issues.createComment({
-            //     owner,
-            //     repo,
-            //     issue_number: prNumber,
-            //     body: commentBody
-            //   });
-            //   console.log('Comment posted successfully');
-            // } catch (error) {
-            //   console.error('Failed to post comment:', error);
-            // }
+
 
 
 
