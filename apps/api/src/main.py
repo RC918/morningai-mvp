@@ -1,4 +1,4 @@
-import os
+import os, sys
 from flask import Flask, send_from_directory, jsonify
 from src.models.user import db
 from src.routes.user import user_bp
@@ -12,6 +12,17 @@ app.register_blueprint(user_bp, url_prefix="/api")
 @app.route("/health")
 def health_check():
     return jsonify({"ok": True}), 200
+
+@app.route("/debug/env")
+def debug_env():
+    visible_keys = ["PORT","CORS_ALLOW_ORIGIN","RENDER","RENDER_GIT_BRANCH","RENDER_GIT_COMMIT","RENDER_SERVICE_ID"]
+    env = {k: os.getenv(k) for k in visible_keys}
+    return jsonify({
+        "env": env,
+        "cwd": os.getcwd(),
+        "pythonpath": sys.path,
+        "workdir_listing": os.listdir("."),
+    })
 
 # uncomment if you need to use database
 app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{os.path.join(os.path.dirname(__file__), "database", "app.db")}"
