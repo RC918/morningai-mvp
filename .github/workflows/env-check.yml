@@ -65,11 +65,11 @@ jobs:
         working-directory: ${{ matrix.app.path }}
         run: npm run lint
 
-      # - name: Web Type Check
-      #   id: web-type-check
-      #   if: ${{ matrix.app.name == 'web' }}
-      #   working-directory: ${{ matrix.app.path }}
-      #   run: npm run typecheck -- --skipLibCheck
+      - name: Web Type Check
+        id: web-type-check
+        if: ${{ matrix.app.name == 'web' }}
+        working-directory: ${{ matrix.app.path }}
+        run: npm run typecheck -- --skipLibCheck
 
       - name: Web Unit Tests
         id: web-unit-tests
@@ -113,11 +113,11 @@ jobs:
         working-directory: ${{ matrix.app.path }}
         run: pip install flake8 && flake8 src/ --ignore=E402,E501,E302,W391,E117,W293
 
-      # - name: API Type Check
-      #   id: api-type-check
-      #   if: ${{ matrix.app.name == 'api' }}
-      #   working-directory: ${{ matrix.app.path }}
-      #   run: pip install mypy && mypy src/ --ignore-missing-imports
+      - name: API Type Check
+        id: api-type-check
+        if: ${{ matrix.app.name == 'api' }}
+        working-directory: ${{ matrix.app.path }}
+        run: pip install mypy && mypy src/ --ignore-missing-imports
 
       - name: API Unit Tests
         id: api-unit-tests
