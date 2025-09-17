@@ -60,16 +60,19 @@ jobs:
           echo "env_missing=$ENV_MISSING" >> $GITHUB_OUTPUT
 
       - name: Web Lint Check
+        id: web-lint-check
         if: ${{ matrix.app.name == 'web' }}
         working-directory: ${{ matrix.app.path }}
         run: npm run lint
 
       - name: Web Type Check
+        id: web-type-check
         if: ${{ matrix.app.name == 'web' }}
         working-directory: ${{ matrix.app.path }}
         run: npm run typecheck
 
       - name: Web Unit Tests
+        id: web-unit-tests
         if: ${{ matrix.app.name == 'web' }}
         working-directory: ${{ matrix.app.path }}
         run: npm run test
@@ -99,11 +102,13 @@ jobs:
           echo "env_missing=$ENV_MISSING" >> $GITHUB_OUTPUT
 
       - name: API Lint Check
+        id: api-lint-check
         if: ${{ matrix.app.name == 'api' }}
         working-directory: ${{ matrix.app.path }}
         run: pip install flake8 && flake8 src/
 
       - name: API Type Check
+        id: api-type-check
         if: ${{ matrix.app.name == 'api' }}
         working-directory: ${{ matrix.app.path }}
         run: pip install mypy && mypy src/
@@ -114,15 +119,21 @@ jobs:
         working-directory: ${{ matrix.app.path }}
         run: pip install pytest && pytest test_health.py
 
-      - name: API Health Check
+      - name: API Health Check (Local)
+        id: api-health-check-local
         if: ${{ matrix.app.name == 'api' }}
         working-directory: ${{ matrix.app.path }}
         run: |
           nohup python src/main.py > api_dev.log 2>&1 &
           sleep 10
-          # Placeholder for online /health validation after Render deployment
-          # curl --fail https://your-render-api-url/health
           curl --fail http://localhost:5000/health
+
+      - name: API Health Check (Online) - Placeholder
+        id: api-health-check-online
+        if: ${{ matrix.app.name == 'api' }}
+        run: |
+          echo "Online health check will be implemented after Render deployment is stable."
+          echo "health_online_outcome=N/A" >> $GITHUB_OUTPUT
 
       - name: Generate Evidence JSON
         id: generate-evidence-json
@@ -130,10 +141,15 @@ jobs:
           PR_NUMBER="${{ github.event.pull_request.number || '' }}"
           REPO_NAME="${{ github.repository }}"
           COMMIT_SHA="${{ github.sha }}"
+          WEB_LINT_OUTCOME="${{ steps.web-lint-check.outcome || 'N/A' }}"
+          WEB_TYPE_OUTCOME="${{ steps.web-type-check.outcome || 'N/A' }}"
           WEB_UNIT_TESTS_OUTCOME="${{ steps.web-unit-tests.outcome || 'N/A' }}"
+          API_LINT_OUTCOME="${{ steps.api-lint-check.outcome || 'N/A' }}"
+          API_TYPE_OUTCOME="${{ steps.api-type-check.outcome || 'N/A' }}"
           API_UNIT_TESTS_OUTCOME="${{ steps.api-unit-tests.outcome || 'N/A' }}"
           ENV_MISSING="${{ steps.extract-env-web.outputs.env_missing || steps.extract-env-api.outputs.env_missing || '無' }}"
-          API_HEALTH_CHECK_OUTCOME="${{ steps.api-health-check.outcome || 'N/A' }}"
+          API_HEALTH_CHECK_LOCAL_OUTCOME="${{ steps.api-health-check-local.outcome || 'N/A' }}"
+          API_HEALTH_CHECK_ONLINE_OUTCOME="${{ steps.api-health-check-online.outputs.health_online_outcome || 'N/A' }}"
           CREATED_AT="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
 
           EVIDENCE_JSON='{
@@ -141,13 +157,17 @@ jobs:
             "repo": "'$REPO_NAME'",
             "commit_sha": "'$COMMIT_SHA'",
             "tests": {
+              "web_lint": "'$WEB_LINT_OUTCOME'",
+              "web_type": "'$WEB_TYPE_OUTCOME'",
               "web_unit_tests": "'$WEB_UNIT_TESTS_OUTCOME'",
+              "api_lint": "'$API_LINT_OUTCOME'",
+              "api_type": "'$API_TYPE_OUTCOME'",
               "api_unit_tests": "'$API_UNIT_TESTS_OUTCOME'"
             },
             "coverage": "N/A",
             "env_missing": "'$ENV_MISSING'",
-            "health": "'$API_HEALTH_CHECK_OUTCOME'",
-            "online_health_check": "'$API_HEALTH_CHECK_OUTCOME'", # Placeholder for online check'", # This will be updated once Render is integrated
+            "health_local": "'$API_HEALTH_CHECK_LOCAL_OUTCOME'",
+            "health_online": "'$API_HEALTH_CHECK_ONLINE_OUTCOME'",
             "ai_summary": "N/A",
             "created_at": "'$CREATED_AT'"
           }'
@@ -184,14 +204,16 @@ jobs:
 **應用程式**: ${{ matrix.app.name }}
 
 ### 測試結果:
-- **環境檢查**: ${{ steps.run-env-check-for-web.outcome || steps.run-env-check-for-api.outcome || 'N/A' }}
-- **Lint 檢查**: ${{ steps.web-lint-check.outcome || steps.api-lint-check.outcome || 'N/A' }}
-- **Type 檢查**: ${{ steps.web-type-check.outcome || steps.api-type-check.outcome || 'N/A' }}
-- **單元測試**: ${{ steps.web-unit-tests.outcome || steps.api-unit-tests.outcome || 'N/A' }}
+- **環境檢查**: ${{ steps.env-check-web.outcome || steps.env-check-api.outcome || 'N/A' }}
+- **Web Lint 檢查**: ${{ steps.web-lint-check.outcome || 'N/A' }}
+- **Web Type 檢查**: ${{ steps.web-type-check.outcome || 'N/A' }}
+- **Web 單元測試**: ${{ steps.web-unit-tests.outcome || 'N/A' }}
+- **API Lint 檢查**: ${{ steps.api-lint-check.outcome || 'N/A' }}
+- **API Type 檢查**: ${{ steps.api-type-check.outcome || 'N/A' }}
+- **API 單元測試**: ${{ steps.api-unit-tests.outcome || 'N/A' }}
 - **覆蓋率**: N/A (待實作)
-- **健康檢查 (本地)**: ${{ steps.api-health-check.outcome || 'N/A' }}
-- **健康檢查 (線上)**: N/A (待實作，Render 恢復後回填)
-
+- **健康檢查 (本地)**: ${{ steps.api-health-check-local.outcome || 'N/A' }}
+- **健康檢查 (線上)**: ${{ steps.api-health-check-online.outputs.health_online_outcome || 'N/A' }}
 
 ### 環境變數缺漏清單:
 ${{ steps.extract-env-web.outputs.env_missing || steps.extract-env-api.outputs.env_missing || '無' }}
@@ -229,15 +251,18 @@ N/A (待實作)
               console.log('New comment posted successfully');
             }
 
-            try {
-              await github.rest.issues.createComment({
-                owner,
-                repo,
-                issue_number: prNumber,
-                body: commentBody
-              });
-              console.log('Comment posted successfully');
-            } catch (error) {
-              console.error('Failed to post comment:', error);
-            }
+            // Removed the duplicate comment posting logic
+            // try {
+            //   await github.rest.issues.createComment({
+            //     owner,
+            //     repo,
+            //     issue_number: prNumber,
+            //     body: commentBody
+            //   });
+            //   console.log('Comment posted successfully');
+            // } catch (error) {
+            //   console.error('Failed to post comment:', error);
+            // }
+
+
 
