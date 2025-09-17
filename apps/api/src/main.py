@@ -1,8 +1,4 @@
 import os
-import sys
-# DON\"T CHANGE THIS !!!
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-
 from flask import Flask, send_from_directory, jsonify
 from src.models.user import db
 from src.routes.user import user_bp
@@ -10,9 +6,10 @@ from src.routes.user import user_bp
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), "static"))
 app.config["SECRET_KEY"] = "asdf#FGSgvasgf$5$WGT"
 
+# Register blueprints first
 app.register_blueprint(user_bp, url_prefix="/api")
 
-# /debug/env route MUST be defined before generic static file serving routes
+# Define /debug/env route before any generic routes
 @app.route("/debug/env")
 def debug_env():
     visible_keys = ["PORT","CORS_ALLOW_ORIGIN","RENDER","RENDER_GIT_BRANCH","RENDER_GIT_COMMIT","RENDER_SERVICE_ID"]
@@ -20,7 +17,7 @@ def debug_env():
     return jsonify({
         "env": env,
         "cwd": os.getcwd(),
-        "pythonpath": sys.path,
+        "pythonpath": os.sys.path,
         "workdir_listing": os.listdir("."),
     })
 
