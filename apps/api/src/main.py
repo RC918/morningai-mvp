@@ -1,9 +1,8 @@
 import os, sys
-from flask import Flask, send_from_directory, jsonify
-from src.models.user import db
-from src.routes.user import user_bp
+from flask import Flask, jsonify
 
-app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), "static"))
+
+app = Flask(__name__)
 app.config["SECRET_KEY"] = "asdf#FGSgvasgf$5$WGT"
 
 # Register blueprints first
@@ -18,15 +17,8 @@ def health_check():
 # uncomment if you need to use database
 
 
-# These routes should be after all other specific API routes
-
-
-
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
-
-
-
 
 
 
