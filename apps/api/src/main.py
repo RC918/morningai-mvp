@@ -36,20 +36,19 @@ def debug_env():
 
 # This route should be after all other routes
 @app.route(\"/\")
+def serve_root():
+    return send_from_directory(app.static_folder, \"index.html\")
+
 @app.route(\"/<path:path>\")
-def serve(path=\"\"):
+def serve_static(path):
     static_folder_path = app.static_folder
     if static_folder_path is None:
             return \"Static folder not configured\", 404
 
-    if path != \"\" and os.path.exists(os.path.join(static_folder_path, path)):
+    if os.path.exists(os.path.join(static_folder_path, path)):
         return send_from_directory(static_folder_path, path)
     else:
-        index_path = os.path.join(static_folder_path, \"index.html\")
-        if os.path.exists(index_path):
-            return send_from_directory(static_folder_path, \"index.html\")
-        else:
-            return \"index.html not found\", 404
+        return send_from_directory(static_folder_path, \"index.html\")
 
 
 if __name__ == \"__main__\":
