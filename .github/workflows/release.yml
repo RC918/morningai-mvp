@@ -1,0 +1,62 @@
+name: Release
+
+on: 
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get previous tag
+        id: previoustag
+        uses: "WyriHaximus/github-action-get-previous-tag@v1"
+        with:
+          fallback: 0.0.0
+
+      - name: Generate Release Notes
+        id: generate_release_notes
+        run: |
+          # Placeholder for GPT-generated release notes
+          # In a real scenario, this would involve calling an AI model API
+          # to summarize changes between ${{ steps.previoustag.outputs.tag }} and ${{ github.ref_name }}
+          # and identify changed modules, risks, and rollback steps.
+          echo "## Release Notes for ${{ github.ref_name }}" > release_notes.md
+          echo "### Changes since ${{ steps.previoustag.outputs.tag }}" >> release_notes.md
+          echo "- Changed modules: [List modules here]" >> release_notes.md
+          echo "- Risks: [Identify risks here]" >> release_notes.md
+          echo "- Rollback steps: [Provide rollback steps here]" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### Corresponding PRs/Commits" >> release_notes.md
+          git log --pretty=format:'- %h %s (%an)' ${{ steps.previoustag.outputs.tag }}..${{ github.ref_name }} >> release_notes.md
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body_path: release_notes.md
+          generate_release_notes: false # We generate our own
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Dump Supabase Schema
+        run: |
+          supabase db diff --local-schema-path supabase/migrations --schema public > supabase_schema_dump.sql
+
+      - name: Upload Supabase Schema Dump
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-schema-dump
+          path: supabase_schema_dump.sql
+
+

@@ -27,5 +27,5 @@ ENV PORT=8000
 EXPOSE 8000
 
 # 用 gunicorn 啟動 Flask app，並在命令中設定 PYTHONPATH
-CMD ["sh", "-c", "PYTHONPATH=/app gunicorn -w 2 -k gthread -b 0.0.0.0:${PORT} src.main:app"]
+CMD ["sh", "-c", "PYTHONPATH=/app/src gunicorn -w 2 -k gthread -b 0.0.0.0:${PORT} src.main:app"]
 
