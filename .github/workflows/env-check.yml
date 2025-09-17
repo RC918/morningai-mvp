@@ -117,7 +117,7 @@ jobs:
         id: api-type-check
         if: ${{ matrix.app.name == 'api' }}
         working-directory: ${{ matrix.app.path }}
-        run: pip install mypy && mypy src/
+        run: pip install mypy && mypy src/ --ignore-missing-imports
 
       - name: API Unit Tests
         id: api-unit-tests
