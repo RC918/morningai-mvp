@@ -1,4 +1,3 @@
-
 name: Env Check
 
 on:
@@ -9,14 +8,24 @@ on:
 jobs:
   env-check:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app:
+          - { name: web, path: apps/web }
+          - { name: api, path: apps/api }
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+
+      - name: Install dotenv for check_env.mjs
+        run: npm install dotenv
+
       - name: Create .env from GitHub Secrets
         run: |
-          cat > .env << 'EOF'
+          cat > ${{ matrix.app.path }}/.env << 'EOF'
           SUPABASE_URL=${{ secrets.SB_URL }}
           SUPABASE_ANON_KEY=${{ secrets.SB_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SB_SERVICE_ROLE_KEY }}
@@ -30,9 +39,100 @@ jobs:
           SMTP_USER=${{ secrets.SMTP_USER }}
           SMTP_PASS=${{ secrets.SMTP_PASS }}
           EOF
-      - name: Install deps for web app
-        run: cd apps/web && npm i
-      - name: Run Env Check
-        run: node scripts/check_env.mjs
-        env:
-          $(cat .env | xargs) : ""
+
+      - name: Install Node.js dependencies (web)
+        if: ${{ matrix.app.name == 'web' }}
+        working-directory: ${{ matrix.app.path }}
+        run: npm ci
+
+      - name: Run Env Check for web
+        if: ${{ matrix.app.name == 'web' }}
+        working-directory: ${{ matrix.app.path }}
+        run: node ../../ops/env/scripts/check_env.mjs --env-file .env --app web
+
+      - name: Web Lint Check
+        if: ${{ matrix.app.name == 'web' }}
+        working-directory: ${{ matrix.app.path }}
+        run: npm run lint
+
+      - name: Web Type Check
+        if: ${{ matrix.app.name == 'web' }}
+        working-directory: ${{ matrix.app.path }}
+        run: npm run typecheck
+
+      - name: Web Unit Tests
+        if: ${{ matrix.app.name == 'web' }}
+        working-directory: ${{ matrix.app.path }}
+        run: npm run test
+
+      - name: Install Python dependencies (api)
+        if: ${{ matrix.app.name == 'api' }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python deps (api)
+        if: ${{ matrix.app.name == 'api' }}
+        working-directory: ${{ matrix.app.path }}
+        run: pip install -r requirements.txt
+
+      - name: Run Env Check for api
+        if: ${{ matrix.app.name == 'api' }}
+        working-directory: ${{ matrix.app.path }}
+        run: node ../../ops/env/scripts/check_env.mjs --env-file .env --app api
+
+      - name: API Lint Check
+        if: ${{ matrix.app.name == 'api' }}
+        working-directory: ${{ matrix.app.path }}
+        run: pip install flake8 && flake8 src/
+
+      - name: API Type Check
+        if: ${{ matrix.app.name == 'api' }}
+        working-directory: ${{ matrix.app.path }}
+        run: pip install mypy && mypy src/
+
+      - name: API Unit Tests
+        if: ${{ matrix.app.name == 'api' }}
+        working-directory: ${{ matrix.app.path }}
+        run: pip install pytest && pytest
+
+      - name: API Health Check
+        if: ${{ matrix.app.name == 'api' }}
+        working-directory: ${{ matrix.app.path }}
+        run: |
+          nohup python src/main.py > api_dev.log 2>&1 &
+          sleep 10
+          curl --fail http://localhost:5000/health
+
+      - name: Post Evidence comment
+        uses: actions/github-script@v6
+        if: always( )
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const prNumber = context.payload.pull_request.number;
+            const jobStatus = process.env.JOB_STATUS;
+            const jobUrl = `https://github.com/${owner}/${repo}/actions/runs/${github.context.runId}`;
+
+            let commentBody = `## CI/CD 驗證結果 (${process.env.APP_NAME} )
+
+            **狀態**: ${jobStatus === 'success' ? '✅ 通過' : '❌ 失敗'}
+            **工作流程**: [Env Check](${jobUrl})
+            **時間**: ${new Date().toLocaleString()}
+
+            ### 詳情:
+            - **環境檢查**: ${{ steps.run-env-check-for-web.outcome || steps.run-env-check-for-api.outcome }}
+            - **Lint**: ${{ steps.web-lint-check.outcome || steps.api-lint-check.outcome }}
+            - **Type Check**: ${{ steps.web-type-check.outcome || steps.api-type-check.outcome }}
+            - **Unit Tests**: ${{ steps.web-unit-tests.outcome || steps.api-unit-tests.outcome }}
+            - **Health Check**: ${{ steps.api-health-check.outcome }}
+
+            `;
+
+            github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: prNumber,
+              body: commentBody
+            });
+
