@@ -1,0 +1,6 @@
+{
+  "name": "morningai-mvp",
+  "private": true,
+  "workspaces": ["apps/web", "apps/api"],
+  "scripts": { "postinstall": "echo 'root install'" }
+}

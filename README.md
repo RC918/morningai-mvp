@@ -1,10 +1,21 @@
-# Render CLI
+# MorningAI MVP (Monorepo)
 
-## Installation
+This repository hosts the MorningAI MVP in a monorepo layout.
 
-- [Homebrew](https://render.com/docs/cli#homebrew-macos-linux)
-- [Direct Download](https://render.com/docs/cli#direct-download)
+## Structure
+- `apps/web` – Frontend (Next.js/React)
+- `apps/api` – Backend (API service)
+- `infra/*` – Deployment & infrastructure configs (Vercel/Render/Supabase/Terraform)
+- `.github/workflows` – CI/CD pipelines
+- `ops/env` – Environment variable standards & scripts
+- `docs` – Blueprints, reviews, security modules, and handoff packs
 
-## Documentation
+## Quickstart
+1. Copy `ops/env/env.sample` to `.env.local` under each app and fill values.
+2. Run the env check:
+   ```bash
+   node ops/env/scripts/check_env.mjs --env-file apps/web/.env --app web
+   node ops/env/scripts/check_env.mjs --env-file apps/api/.env --app api
+   ```
+3. Install & build each app.
 
-Documentation is hosted at https://render.com/docs/cli
