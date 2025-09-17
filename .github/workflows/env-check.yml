@@ -112,7 +112,8 @@ jobs:
             const { owner, repo } = context.repo;
             const prNumber = context.payload.pull_request.number;
             const jobStatus = process.env.JOB_STATUS;
-            const jobUrl = `https://github.com/${owner}/${repo}/actions/runs/${github.context.runId}`;
+            const jobUrl = `https://github.com/${owner}/${repo}/actions/runs/${github.run_id}`;
+
 
             let commentBody = `## CI/CD 驗證結果 (${process.env.APP_NAME} )
 
