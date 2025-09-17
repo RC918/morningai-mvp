@@ -75,7 +75,7 @@ function App() {
         
         <main className="flex-1 overflow-y-auto">
           <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/" element={<div>MorningAI MVP – Web</div>} />
             <Route path="/dashboard" element={<Dashboard />} />
 
           </Routes>
