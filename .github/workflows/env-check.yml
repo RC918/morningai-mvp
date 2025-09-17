@@ -201,6 +201,7 @@ jobs:
           script: |
             const { owner, repo } = context.repo;
             const prNumber = context.payload.pull_request?.number;
+            const jobStatus = process.env.JOB_STATUS; // This is still an issue if not passed from shell
             
             if (!prNumber) {
               console.log('No PR number found, skipping comment');
@@ -208,8 +209,21 @@ jobs:
             }
             
             const jobUrl = `https://github.com/${owner}/${repo}/actions/runs/${context.runId}`;
-            const jobStatus = process.env.JOB_STATUS; // Use an environment variable for job status
             
+            // Define outcomes from previous steps
+            const webLintOutcome = `${{ steps.web-lint-check.outcome || 'N/A' }}`;
+            const webTypeOutcome = `${{ steps.web-type-check.outcome || 'N/A' }}`;
+            const webUnitTestsOutcome = `${{ steps.web-unit-tests.outcome || 'N/A' }}`;
+            const webImportSmokeTestOutcome = `${{ steps.web-import-smoke-test.outcome || 'N/A' }}`;
+            const apiLintOutcome = `${{ steps.api-lint-check.outcome || 'N/A' }}`;
+            const apiTypeOutcome = `${{ steps.api-type-check.outcome || 'N/A' }}`;
+            const apiUnitTestsOutcome = `${{ steps.api-unit-tests.outcome || 'N/A' }}`;
+            const apiImportSmokeTestOutcome = `${{ steps.api-import-smoke-test.outcome || 'N/A' }}`;
+            const envMissing = `${{ steps.extract-env-web.outputs.env_missing || steps.extract-env-api.outputs.env_missing || '無' }}`;
+            const apiHealthCheckLocalOutcome = `${{ steps.api-health-check-local.outcome || 'N/A' }}`;
+            const apiHealthCheckOnlineOutcome = `${{ steps.api-health-check-online.outputs.health_online_outcome || 'N/A' }}`;
+            const envCheckOutcome = `${{ steps.env-check-web.outcome || steps.env-check-api.outcome || 'N/A' }}`;
+
             const commentBody = `
 <!-- evidence-package -->
 ## 🔍 CI/CD 工作流程報告
@@ -220,21 +234,21 @@ jobs:
 **應用程式**: ${{ matrix.app.name }}
 
 ### 測試結果:
-- **環境檢查**: ${{ steps.env-check-web.outcome || steps.env-check-api.outcome || 'N/A' }}
-- **Web Lint 檢查**: ${{ steps.web-lint-check.outcome || 'N/A' }}
-- **Web Type 檢查**: ${{ steps.web-type-check.outcome || 'N/A' }}
-- **Web 單元測試**: ${{ steps.web-unit-tests.outcome || 'N/A' }}
-- **Web Import Smoke Test**: ${{ steps.web-import-smoke-test.outcome || 'N/A' }}
-- **API Lint 檢查**: ${{ steps.api-lint-check.outcome || 'N/A' }}
-- **API Type 檢查**: ${{ steps.api-type-check.outcome || 'N/A' }}
-- **API 單元測試**: ${{ steps.api-unit-tests.outcome || 'N/A' }}
-- **API Import Smoke Test**: ${{ steps.api-import-smoke-test.outcome || 'N/A' }}
+- **環境檢查**: ${envCheckOutcome}
+- **Web Lint 檢查**: ${webLintOutcome}
+- **Web Type 檢查**: ${webTypeOutcome}
+- **Web 單元測試**: ${webUnitTestsOutcome}
+- **Web Import Smoke Test**: ${webImportSmokeTestOutcome}
+- **API Lint 檢查**: ${apiLintOutcome}
+- **API Type 檢查**: ${apiTypeOutcome}
+- **API 單元測試**: ${apiUnitTestsOutcome}
+- **API Import Smoke Test**: ${apiImportSmokeTestOutcome}
 - **覆蓋率**: N/A (待實作)
-- **健康檢查 (本地)**: ${{ steps.api-health-check-local.outcome || 'N/A' }}
-- **健康檢查 (線上)**: ${{ steps.api-health-check-online.outputs.health_online_outcome || 'N/A' }}
+- **健康檢查 (本地)**: ${apiHealthCheckLocalOutcome}
+- **健康檢查 (線上)**: ${apiHealthCheckOnlineOutcome}
 
 ### 環境變數缺漏清單:
-${{ steps.extract-env-web.outputs.env_missing || steps.extract-env-api.outputs.env_missing || '無' }}
+${envMissing}
 
 ### AI 變更摘要:
 N/A (待實作)
@@ -268,6 +282,8 @@ N/A (待實作)
               });
               console.log('New comment posted successfully');
             }
+
+
 
 
 
