@@ -46,7 +46,6 @@ if __name__ == "__main__":
 
 # This is a test comment to trigger CI.
 
-
 @app.route("/debug/env")
 def debug_env():
     visible_keys = ["PORT","CORS_ALLOW_ORIGIN","RENDER","RENDER_GIT_BRANCH","RENDER_GIT_COMMIT","RENDER_SERVICE_ID"]
@@ -57,4 +56,5 @@ def debug_env():
         "pythonpath": sys.path,
         "workdir_listing": os.listdir("."),
     })
+
 
