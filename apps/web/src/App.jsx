@@ -75,7 +75,14 @@ function App() {
         
         <main className="flex-1 overflow-y-auto">
           <Routes>
-            <Route path="/" element={<div>MorningAI MVP – Web</div>} />
+            <Route path="/" element={
+              <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <div className="text-center">
+                  <h1 className="text-4xl font-bold text-gray-900 mb-4">MorningAI MVP – Web</h1>
+                  <p className="text-lg text-gray-600">歡迎使用 MorningAI MVP 前端應用程式</p>
+                </div>
+              </div>
+            } />
             <Route path="/dashboard" element={<Dashboard />} />
 
           </Routes>
@@ -88,4 +95,9 @@ function App() {
 }
 
 export default App
+
+
+
+// This is a test comment to trigger a CI/CD run for PR evidence collection
+
 
