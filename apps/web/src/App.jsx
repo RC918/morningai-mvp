@@ -18,7 +18,7 @@ function App() {
       try {
         const token = localStorage.getItem('auth_token');
         if (token) {
-          const response = await fetch('/api/auth/verify', {
+          const response = await fetch('https://morningai-mvp.onrender.com/api/auth/verify', {
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -26,7 +26,7 @@ function App() {
           
           if (response.ok) {
             const userData = await response.json();
-            setUser(userData);
+            setUser(userData.user);
             setIsAuthenticated(true);
           } else {
             localStorage.removeItem('auth_token');

@@ -20,8 +20,8 @@ const LoginPage = ({ onLogin }) => {
     setError('')
 
     try {
-      // 模擬API調用
-      const response = await fetch('/api/auth/login', {
+      // 調用後端 API
+      const response = await fetch('https://morningai-mvp.onrender.com/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -37,20 +37,8 @@ const LoginPage = ({ onLogin }) => {
         setError(errorData.message || '登錄失敗，請檢查用戶名和密碼')
       }
     } catch (error) {
-      // 開發環境下的模擬登錄
-      if (credentials.username === 'admin' && credentials.password === 'admin123') {
-        const mockUser = {
-          id: 1,
-          name: '系統管理員',
-          username: 'admin',
-          role: '超級管理員',
-          avatar: null
-        }
-        const mockToken = 'mock-jwt-token-' + Date.now()
-        onLogin(mockUser, mockToken)
-      } else {
-        setError('登錄失敗：用戶名或密碼錯誤')
-      }
+      console.error('登錄錯誤:', error)
+      setError('網絡錯誤，請稍後重試')
     } finally {
       setLoading(false)
     }
