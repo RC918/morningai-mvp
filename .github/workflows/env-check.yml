@@ -201,85 +201,55 @@ jobs:
           path: evidence.json
 
       - name: Post Evidence comment
-        uses: actions/github-script@v6
+        if: ${{ github.event_name == 'pull_request' }}
+        uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |-
-            const fs = require("fs");
-            const { owner, repo } = context.repo;
-            const prNumber = context.payload.pull_request?.number;
-            const jobStatus = `${{ job.status }}`;
+            const marker = '<!-- evidence-package -->'
+            const { owner, repo } = context.repo
+            const issue_number = context.payload.pull_request.number
 
-            
-            if (!prNumber) {
-              console.log('No PR number found, skipping comment');
-              return;
-            }
-            
-            const jobUrl = `https://github.com/${owner}/${repo}/actions/runs/${context.runId}`;
-            
-            // Define outcomes from previous steps
-            const webLintOutcome = '{{ steps.web-lint-check.outcome || "N/A" }}';
-            const webTypeOutcome = '{{ steps.web-type-check.outcome || "N/A" }}';
-            const webUnitTestsOutcome = '{{ steps.web-unit-tests.outcome || "N/A" }}';
-            const webImportSmokeTestOutcome = '{{ steps.web-import-smoke-test.outcome || "N/A" }}';
-            const apiLintOutcome = '{{ steps.api-lint-check.outcome || "N/A" }}';
-            const apiTypeOutcome = '{{ steps.api-type-check.outcome || "N/A" }}';
-            const apiUnitTestsOutcome = '{{ steps.api-unit-tests.outcome || "N/A" }}';
-            const apiImportSmokeTestOutcome = '{{ steps.api-import-smoke-test.outcome || "N/A" }}';
-            const envMissing = "${{ steps.extract-env-web.outputs.env_missing || steps.extract-env-api.outputs.env_missing || '無' }}";
-            const apiHealthCheckLocalOutcome = '{{ steps.api-health-check-local.outcome || "N/A" }}';
-            const apiHealthCheckOnlineOutcome = '{{ steps.api-health-check-online.outputs.health_online_outcome || "N/A" }}';
-            const envCheckOutcome = '{{ steps.env-check-web.outcome || steps.env-check-api.outcome || "N/A" }}';
+            const body = `${marker}
+            ### ✅ Evidence Package
 
-            const envStatus = envMissing === '無' ? 'All good' : `Missing: ${envMissing}`;
-            const healthStatus = apiHealthCheckOnlineOutcome === 'success' ? 'PASS' : (apiHealthCheckOnlineOutcome === 'failure' ? 'FAIL' : 'N/A');
-            const fs = require('fs');
-let commentBody = fs.readFileSync('.github/workflows/comment-template.md', 'utf8');
-commentBody = commentBody.replace('{{repo}}', `${owner}/${repo}`);
-commentBody = commentBody.replace('{{pr_number}}', prNumber);
-commentBody = commentBody.replace('{{commit_sha}}', context.sha);
-commentBody = commentBody.replace('{{env_status}}', envStatus);
-commentBody = commentBody.replace('{{lint_status}}', `${{ matrix.app.name == 'web' ? steps.web-lint-check.outcome : steps.api-lint-check.outcome }}`);
-commentBody = commentBody.replace('{{typecheck_status}}', `${{ matrix.app.name == 'web' ? steps.web-type-check.outcome : steps.api-type-check.outcome }}`);
-commentBody = commentBody.replace('{{unit_tests_status}}', `${{ matrix.app.name == 'web' ? steps.web-unit-tests.outcome : steps.api-unit-tests.outcome }}`);
-commentBody = commentBody.replace('{{e2e_tests_status}}', 'N/A');
-commentBody = commentBody.replace('{{import_smoke_status}}', `${{ matrix.app.name == 'web' ? steps.web-import-smoke-test.outcome : steps.api-import-smoke-test.outcome }}`);
-commentBody = commentBody.replace('{{health_status}}', healthStatus);
-commentBody = commentBody.replace('{{coverage_percent}}', 'N/A');
-commentBody = commentBody.replace('{{missing_env_vars}}', envMissing);
-commentBody = commentBody.replace('{{ai_summary}}', 'N/A');
+            **PR Info**
+            - Repo: ${owner}/${repo}
+            - PR #: #${issue_number}
+            - Commit: ${context.sha}
 
-            const comments = await github.rest.issues.listComments({
-              owner,
-              repo,
-              issue_number: prNumber,
-            });
+            **CI Results**
+            - Env Check: ${process.env.ENV_STATUS}
+            - Lint: ${process.env.LINT_STATUS}
+            - TypeCheck: ${process.env.TYPECHECK_STATUS}
+            - Unit Tests: ${process.env.UNIT_STATUS}
+            - E2E Tests: ${process.env.E2E_STATUS}
+            - Import Smoke Test: ${process.env.IMPORT_STATUS}
+            - /health: ${process.env.HEALTH_STATUS}
+            - Coverage: ${process.env.COVERAGE || 'N/A'} %
 
-            const existingComment = comments.data.find(comment => comment.body.includes('<!-- evidence-package -->'));
+            **Secrets**
+            - Missing Vars: ${process.env.MISSING_VARS || 'None'}
 
-            if (existingComment) {
-              await github.rest.issues.updateComment({
-                owner,
-                repo,
-                comment_id: existingComment.id,
-                body: commentBody
-              });
-              console.log('Existing comment updated successfully');
+            **AI Summary**
+            > (TBD)
+
+            _CI auto-generated. Do not edit manually._
+            `;
+
+            const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number })
+            const prev = comments.find(c => c.body && c.body.includes(marker))
+            if (prev) {
+              await github.rest.issues.updateComment({ owner, repo, comment_id: prev.id, body })
             } else {
-              await github.rest.issues.createComment({
-                owner,
-                repo,
-                issue_number: prNumber,
-                body: commentBody
-              });
-              console.log('New comment posted successfully');
+              await github.rest.issues.createComment({ owner, repo, issue_number, body })
             }
-
-
-
-
-
-
-
-
-
+        env:
+          ENV_STATUS: ${{ steps.extract-env-web.outputs.env_missing || steps.extract-env-api.outputs.env_missing || 'N/A' }}
+          LINT_STATUS: ${{ steps.web-lint-check.outcome || steps.api-lint-check.outcome || 'N/A' }}
+          TYPECHECK_STATUS: ${{ steps.web-type-check.outcome || steps.api-type-check.outcome || 'N/A' }}
+          UNIT_STATUS: ${{ steps.web-unit-tests.outcome || steps.api-unit-tests.outcome || 'N/A' }}
+          E2E_STATUS: N/A
+          IMPORT_STATUS: ${{ steps.web-import-smoke-test.outcome || steps.api-import-smoke-test.outcome || 'N/A' }}
+          HEALTH_STATUS: ${{ steps.api-health-check-online.outputs.health_online_outcome || steps.api-health-check-local.outcome || 'N/A' }}
+          MISSING_VARS: ${{ steps.extract-env-web.outputs.env_missing || steps.extract-env-api.outputs.env_missing }}

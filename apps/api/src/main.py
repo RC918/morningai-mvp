@@ -3,7 +3,7 @@ import sys
 # DON'T CHANGE THIS !!!
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from flask import Flask, send_from_directory, jsonify
+from flask import Flask, send_from_directory
 from src.models.user import db
 from src.routes.user import user_bp
 
@@ -42,19 +42,4 @@ if __name__ == '__main__':
 @app.route('/health')
 def health_check():
     return {"ok": True}, 200
-
-
-
-
-@app.route("/debug/env")
-def debug_env():
-    visible_keys = ["PORT","CORS_ALLOW_ORIGIN","RENDER","RENDER_GIT_BRANCH","RENDER_GIT_COMMIT","RENDER_SERVICE_ID"]
-    env = {k: os.getenv(k) for k in visible_keys}
-    return jsonify({
-        "env": env,
-        "cwd": os.getcwd(),
-        "pythonpath": sys.path,
-        "workdir_listing": os.listdir("."),
-    })
-
 
