@@ -1,6 +1,6 @@
 import os
 import sys
-# DON\'T CHANGE THIS !!!
+# DON\"T CHANGE THIS !!!
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from flask import Flask, send_from_directory, jsonify
@@ -11,17 +11,6 @@ app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), "sta
 app.config["SECRET_KEY"] = "asdf#FGSgvasgf$5$WGT"
 
 app.register_blueprint(user_bp, url_prefix="/api")
-
-# uncomment if you need to use database
-app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{os.path.join(os.path.dirname(__file__), "database", "app.db")}"
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-db.init_app(app)
-with app.app_context():
-    db.create_all()
-
-@app.route("/health")
-def health_check():
-    return jsonify({"ok": True}), 200
 
 # /debug/env route MUST be defined before generic static file serving routes
 @app.route("/debug/env")
@@ -34,6 +23,17 @@ def debug_env():
         "pythonpath": sys.path,
         "workdir_listing": os.listdir("."),
     })
+
+@app.route("/health")
+def health_check():
+    return jsonify({"ok": True}), 200
+
+# uncomment if you need to use database
+app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{os.path.join(os.path.dirname(__file__), "database", "app.db")}"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+db.init_app(app)
+with app.app_context():
+    db.create_all()
 
 # These routes should be after all other specific API routes
 @app.route("/")
