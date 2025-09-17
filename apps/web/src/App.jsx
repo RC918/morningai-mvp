@@ -1,103 +1,87 @@
-import { useState, useEffect } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
-import { Toaster } from '@/components/ui/sonner'
-import Sidebar from '@/components/Sidebar'
-import Dashboard from '@/components/Dashboard'
+import { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from '@/components/ui/sonner';
+import Sidebar from '@/components/Sidebar';
+import Dashboard from '@/components/Dashboard';
 
-import LoginPage from '@/components/LoginPage'
-import './App.css'
+import LoginPage from '@/components/LoginPage';
+import RegisterPage from '@/components/RegisterPage'; // Import RegisterPage
+import './App.css';
 
 function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 檢查用戶認證狀態
     const checkAuth = async () => {
       try {
-        const token = localStorage.getItem('auth_token')
+        const token = localStorage.getItem('auth_token');
         if (token) {
-          // 驗證token有效性
           const response = await fetch('/api/auth/verify', {
             headers: {
               'Authorization': `Bearer ${token}`
             }
-          })
+          });
           
           if (response.ok) {
-            const userData = await response.json()
-            setUser(userData)
-            setIsAuthenticated(true)
+            const userData = await response.json();
+            setUser(userData);
+            setIsAuthenticated(true);
           } else {
-            localStorage.removeItem('auth_token')
+            localStorage.removeItem('auth_token');
           }
         }
       } catch (error) {
-        console.error('認證檢查失敗:', error)
-        localStorage.removeItem('auth_token')
+        console.error('認證檢查失敗:', error);
+        localStorage.removeItem('auth_token');
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    checkAuth()
-  }, [])
+    checkAuth();
+  }, []);
 
   const handleLogin = (userData, token) => {
-    setUser(userData)
-    setIsAuthenticated(true)
-    localStorage.setItem('auth_token', token)
-  }
+    setUser(userData);
+    setIsAuthenticated(true);
+    localStorage.setItem('auth_token', token);
+  };
 
   const handleLogout = () => {
-    setUser(null)
-    setIsAuthenticated(false)
-    localStorage.removeItem('auth_token')
-  }
+    setUser(null);
+    setIsAuthenticated(false);
+    localStorage.removeItem('auth_token');
+  };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
       </div>
-    )
-  }
-
-  if (!isAuthenticated) {
-    return <LoginPage onLogin={handleLogin} />
+    );
   }
 
   return (
     <Router>
-      <div className="flex h-screen bg-gray-100">
-        <Sidebar user={user} onLogout={handleLogout} />
-        
-        <main className="flex-1 overflow-y-auto">
-          <Routes>
-            <Route path="/" element={
-              <div className="min-h-screen flex items-center justify-center bg-gray-50">
-                <div className="text-center">
-                  <h1 className="text-4xl font-bold text-gray-900 mb-4">MorningAI MVP – Web</h1>
-                  <p className="text-lg text-gray-600">歡迎使用 MorningAI MVP 前端應用程式</p>
-                </div>
-              </div>
-            } />
-            <Route path="/dashboard" element={<Dashboard />} />
-
-          </Routes>
-        </main>
-        
-        <Toaster />
-      </div>
+      <Routes>
+        <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route 
+          path="/dashboard" 
+          element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />}
+        />
+        <Route 
+          path="/" 
+          element={isAuthenticated ? <Navigate to="/dashboard" /> : <Navigate to="/login" />}
+        />
+      </Routes>
+      <Toaster />
     </Router>
-  )
+  );
 }
 
-export default App
-
-
-
-// This is a test comment to trigger a CI/CD run for PR evidence collection
+export default App;
 
 
