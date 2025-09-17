@@ -231,35 +231,7 @@ jobs:
             const envCheckOutcome = '{{ steps.env-check-web.outcome || steps.env-check-api.outcome || "N/A" }}';
 
             const envStatus = envMissing === '無' ? 'All good' : `Missing: ${envMissing}`;
-            const healthStatus = apiHealthCheckOnlineOutcome === 'success' ? 'PASS' : (apiHealthCheckOnlineOutcome === 'failure' ? 'FAIL' : 'N/A');
-            const commentBody = `
-<!-- evidence-package -->
-### ✅ Evidence Package
-
-**PR Info**
-- Repo: ${owner}/${repo}
-- PR #: #${prNumber}
-- Commit: ${context.sha}
-
-**CI Results**
-- Env Check: ${envStatus}
-- Lint: ${{ matrix.app.name == 'web' ? steps.web-lint-check.outcome : steps.api-lint-check.outcome }}
-- TypeCheck: ${{ matrix.app.name == 'web' ? steps.web-type-check.outcome : steps.api-type-check.outcome }}
-- Unit Tests: ${{ matrix.app.name == 'web' ? steps.web-unit-tests.outcome : steps.api-unit-tests.outcome }}
-- E2E Tests: N/A
-- Import Smoke Test: ${{ matrix.app.name == 'web' ? steps.web-import-smoke-test.outcome : steps.api-import-smoke-test.outcome }}
-- /health: ${healthStatus}
-- Coverage: N/A %
-
-**Secrets**
-- Missing Vars: ${envMissing}
-
-**AI Summary**
-> N/A
-
----
-_This comment was generated automatically by CI. Do not edit manually._
-            `;
+            const healthStatus = apiHealthCheckOnlineOutcome === 'success' ? 'PASS' : (apiHealthCheckOnlineOutcome === 'failure' ? 'FA            const commentBody = "Test comment body";manually._\n            `;
 
             const comments = await github.rest.issues.listComments({
               owner,
