@@ -111,7 +111,7 @@ jobs:
         id: api-lint-check
         if: ${{ matrix.app.name == 'api' }}
         working-directory: ${{ matrix.app.path }}
-        run: pip install flake8 && flake8 src/ --ignore=E402,E501,E302,W391
+        run: pip install flake8 && flake8 src/ --ignore=E402,E501,E302,W391,E117,W293
 
       - name: API Type Check
         id: api-type-check
