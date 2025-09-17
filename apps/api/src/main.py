@@ -7,7 +7,7 @@ app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), "sta
 app.config["SECRET_KEY"] = "asdf#FGSgvasgf$5$WGT"
 
 # Register blueprints first
-app.register_blueprint(user_bp, url_prefix="/api")
+
 
 @app.route("/health")
 def health_check():
@@ -16,11 +16,7 @@ def health_check():
 
 
 # uncomment if you need to use database
-app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{os.path.join(os.path.dirname(__file__), "database", "app.db")}"
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-db.init_app(app)
-with app.app_context():
-    db.create_all()
+
 
 # These routes should be after all other specific API routes
 
