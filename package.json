@@ -1,6 +1,14 @@
 {
   "name": "morningai-mvp",
   "private": true,
-  "workspaces": ["apps/web", "apps/api"],
-  "scripts": { "postinstall": "echo 'root install'" }
+  "workspaces": [
+    "apps/web",
+    "apps/api"
+  ],
+  "scripts": {
+    "postinstall": "echo 'root install'"
+  },
+  "dependencies": {
+    "dotenv": "^17.2.2"
+  }
 }

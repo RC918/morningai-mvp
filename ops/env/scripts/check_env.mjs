@@ -1,5 +1,11 @@
 import { config } from 'dotenv';
 import { readFileSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
+
+// Get __dirname in ES module
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Parse command line arguments
 const args = process.argv.slice(2);
@@ -23,17 +29,18 @@ config({ path: envFile });
 console.log(`🔍 Checking environment for app: ${app}`);
 console.log(`📁 Using env file: ${envFile}`);
 
-const required = [
-  'SUPABASE_URL',
-  'SUPABASE_ANON_KEY',
-  'SUPABASE_SERVICE_ROLE_KEY',
-  'SUPABASE_JWT_SECRET',
-  'DATABASE_URL',
-  'REDIS_URL',
-  'JWT_SECRET',
-  'EMAIL_FROM',
-  'SMTP_HOST','SMTP_PORT','SMTP_USER','SMTP_PASS'
-];
+// Load secrets matrix
+const matrixPath = join(__dirname, '..', 'SECRETS_MATRIX.csv');
+const matrixCsv = readFileSync(matrixPath, 'utf-8');
+const matrix = matrixCsv.split('\n').slice(1).map(line => {
+  const [app, variable, required] = line.split(',');
+  return { app, variable, required: required === 'TRUE' };
+});
+
+// Get required variables for the current app
+const required = matrix
+  .filter(row => row.app === app && row.required)
+  .map(row => row.variable);
 
 let missing = [];
 for (const key of required) {
@@ -45,12 +52,14 @@ if (missing.length) {
   process.exit(1);
 }
 
-const urlish = ['SUPABASE_URL','DATABASE_URL','REDIS_URL'];
+const urlish = ['SUPABASE_URL', 'DATABASE_URL', 'REDIS_URL', 'NEXT_PUBLIC_SUPABASE_URL'];
 for (const k of urlish) {
-  try { new URL(process.env[k]); } catch { console.warn(`⚠️ ${k} may be malformed: ${process.env[k]}`); }
+  if (required.includes(k)) {
+    try { new URL(process.env[k]); } catch { console.warn(`⚠️ ${k} may be malformed: ${process.env[k]}`); }
+  }
 }
 
-if ((process.env.JWT_SECRET || '').length < 24) {
+if (required.includes('JWT_SECRET') && (process.env.JWT_SECRET || '').length < 24) {
   console.warn('⚠️ JWT_SECRET should be at least 24 chars.');
 }
 

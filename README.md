@@ -19,3 +19,28 @@ This repository hosts the MorningAI MVP in a monorepo layout.
    ```
 3. Install & build each app.
 
+
+
+## CI Status
+
+[![Env Check](https://github.com/RC918/morningai-mvp/actions/workflows/env-check.yml/badge.svg)](https://github.com/RC918/morningai-mvp/actions/workflows/env-check.yml)
+
+
+
+
+## Code Coverage
+
+[![Codecov](https://codecov.io/gh/RC918/morningai-mvp/branch/main/graph/badge.svg)](https://codecov.io/gh/RC918/morningai-mvp)
+
+*(請替換為您專案的實際 Codecov 徽章 URL)*
+
+
+
+
+## Deployment Status
+
+![Deploy](https://github.com/RC918/morningai-mvp/actions/workflows/deploy.yml/badge.svg)
+
+*(請替換為您專案的實際部署工作流程徽章 URL)*
+
+
