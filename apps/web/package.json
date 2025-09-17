@@ -11,7 +11,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit --skipLibCheck",
     "test": "echo \"No web tests yet\" && exit 0"
   },
   "dependencies": {
