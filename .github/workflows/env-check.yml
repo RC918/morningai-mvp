@@ -202,52 +202,39 @@ jobs:
 
 
 
-
-
-
       - name: Post Evidence comment
         if: ${{ github.event_name == 'pull_request' }}
         uses: actions/github-script@v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |-
-            const marker = '<!-- evidence-package -->'
-            const { owner, repo } = context.repo
-            const issue_number = context.payload.pull_request.number
+            const fs = require('fs');
+            const template = fs.readFileSync('.github/workflows/comment-template.md', 'utf8');
+            const marker = '<!-- evidence-package -->';
+            const { owner, repo } = context.repo;
+            const issue_number = context.payload.pull_request.number;
 
-            const body = `${marker}
-            ### ✅ Evidence Package
+            let body = template;
+            body = body.replace('{{REPO_NAME}}', `${owner}/${repo}`);
+            body = body.replace('{{PR_NUMBER}}', issue_number);
+            body = body.replace('{{COMMIT_SHA}}', context.sha);
+            body = body.replace('{{ENV_STATUS}}', `${process.env.ENV_STATUS}`);
+            body = body.replace('{{LINT_STATUS}}', `${process.env.LINT_STATUS}`);
+            body = body.replace('{{TYPECHECK_STATUS}}', `${process.env.TYPECHECK_STATUS}`);
+            body = body.replace('{{UNIT_TESTS_STATUS}}', `${process.env.UNIT_STATUS}`);
+            body = body.replace('{{E2E_STATUS}}', `${process.env.E2E_STATUS}`);
+            body = body.replace('{{IMPORT_SMOKE_STATUS}}', `${process.env.IMPORT_STATUS}`);
+            body = body.replace('{{HEALTH_STATUS}}', `${process.env.HEALTH_STATUS}`);
+            body = body.replace('{{COVERAGE_PERCENT}}', `${process.env.COVERAGE || 'N/A'}`);
+            body = body.replace('{{MISSING_ENV_VARS}}', `${process.env.MISSING_VARS || 'None'}`);
+            body = body.replace('{{AI_CHANGE_SUMMARY}}', '(TBD)');
 
-            **PR Info**
-            - Repo: ${owner}/${repo}
-            - PR #: #${issue_number}
-            - Commit: ${context.sha}
-
-            **CI Results**
-            - Env Check: ${process.env.ENV_STATUS}
-            - Lint: ${process.env.LINT_STATUS}
-            - TypeCheck: ${process.env.TYPECHECK_STATUS}
-            - Unit Tests: ${process.env.UNIT_STATUS}
-            - E2E Tests: ${process.env.E2E_STATUS}
-            - Import Smoke Test: ${process.env.IMPORT_STATUS}
-            - /health: ${process.env.HEALTH_STATUS}
-            - Coverage: ${process.env.COVERAGE || 'N/A'} %
-
-            **Secrets**
-            - Missing Vars: ${process.env.MISSING_VARS || 'None'}
-
-            **AI Summary**
-            > (TBD)
-
-            _CI auto-generated. Do not edit manually._
-            `;
-
-            const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number })
-            const prev = comments.find(c => c.body && c.body.includes(marker))
+            const { data: comments } = await github.rest.issues.listComments({ owner, repo, issue_number });
+            const prev = comments.find(c => c.body && c.body.includes(marker));
             if (prev) {
-              await github.rest.issues.updateComment({ owner, repo, comment_id: prev.id, body })
+              await github.rest.issues.updateComment({ owner, repo, comment_id: prev.id, body });
             } else {
-              await github.rest.issues.createComment({ owner, repo, issue_number, body })
+              await github.rest.issues.createComment({ owner, repo, issue_number, body });
             }
         env:
           ENV_STATUS: ${{ steps.extract-env-web.outputs.env_missing || steps.extract-env-api.outputs.env_missing || 'N/A' }}
@@ -258,4 +245,5 @@ jobs:
           IMPORT_STATUS: ${{ steps.web-import-smoke-test.outcome || steps.api-import-smoke-test.outcome || 'N/A' }}
           HEALTH_STATUS: ${{ steps.api-health-check-online.outputs.health_online_outcome || steps.api-health-check-local.outcome || 'N/A' }}
           MISSING_VARS: ${{ steps.extract-env-web.outputs.env_missing || steps.extract-env-api.outputs.env_missing }}
+
 

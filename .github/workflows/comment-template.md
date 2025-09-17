@@ -2,25 +2,25 @@
 ### ✅ Evidence Package
 
 **PR Info**
-- Repo: {{repo}}
-- PR #: #{{pr_number}}
-- Commit: {{commit_sha}}
+- Repo: {{REPO_NAME}}
+- PR #: #{{PR_NUMBER}}
+- Commit: {{COMMIT_SHA}}
 
 **CI Results**
-- Env Check: {{env_status}}
-- Lint: {{lint_status}}
-- TypeCheck: {{typecheck_status}}
-- Unit Tests: {{unit_tests_status}}
-- E2E Tests: {{e2e_tests_status}}
-- Import Smoke Test: {{import_smoke_status}}
-- /health: {{health_status}}
-- Coverage: {{coverage_percent}} %
+- Env Check: {{ENV_STATUS}}
+- Lint: {{LINT_STATUS}}
+- TypeCheck: {{TYPECHECK_STATUS}}
+- Unit Tests: {{UNIT_TESTS_STATUS}}
+- E2E Tests: {{E2E_STATUS}}
+- Import Smoke Test: {{IMPORT_SMOKE_STATUS}}
+- /health: {{HEALTH_STATUS}}
+- Coverage: {{COVERAGE_PERCENT}} %
 
 **Secrets**
-- Missing Vars: {{missing_env_vars}}
+- Missing Vars: {{MISSING_ENV_VARS}}
 
 **AI Summary**
-> {{ai_summary}}
+> {{AI_CHANGE_SUMMARY}}
 
 ---
 _This comment was generated automatically by CI. Do not edit manually._
