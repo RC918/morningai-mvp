@@ -9,18 +9,6 @@ app.config["SECRET_KEY"] = "asdf#FGSgvasgf$5$WGT"
 # Register blueprints first
 app.register_blueprint(user_bp, url_prefix="/api")
 
-# Define /debug/env route before any generic routes
-@app.route("/debug/env")
-def debug_env():
-    visible_keys = ["PORT","CORS_ALLOW_ORIGIN","RENDER","RENDER_GIT_BRANCH","RENDER_GIT_COMMIT","RENDER_SERVICE_ID"]
-    env = {k: os.getenv(k) for k in visible_keys}
-    return jsonify({
-        "env": env,
-        "cwd": os.getcwd(),
-        "pythonpath": os.sys.path,
-        "workdir_listing": os.listdir("."),
-    })
-
 @app.route("/health")
 def health_check():
     return jsonify({"ok": True}), 200
