@@ -45,8 +45,6 @@ def health_check():
 
 
 
-import os, sys
-from flask import jsonify
 
 @app.route("/debug/env")
 def debug_env():
