@@ -46,8 +46,6 @@ def health_check():
 
 
 
-import os, sys
-
 @app.route("/debug/env")
 def debug_env():
     visible_keys = ["PORT","CORS_ALLOW_ORIGIN","RENDER","RENDER_GIT_BRANCH","RENDER_GIT_COMMIT","RENDER_SERVICE_ID"]
