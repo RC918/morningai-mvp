@@ -23,6 +23,17 @@ with app.app_context():
 def health_check():
     return jsonify({"ok": True}), 200
 
+@app.route('/debug/env')
+def debug_env():
+    visible_keys = ["PORT","CORS_ALLOW_ORIGIN","RENDER","RENDER_GIT_BRANCH","RENDER_GIT_COMMIT","RENDER_SERVICE_ID"]
+    env = {k: os.getenv(k) for k in visible_keys}
+    return jsonify({
+        "env": env,
+        "cwd": os.getcwd(),
+        "pythonpath": sys.path,
+        "workdir_listing": os.listdir("."),
+    })
+
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve(path):
@@ -42,18 +53,5 @@ def serve(path):
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
-
-
-
-@app.get("/debug/env")
-def debug_env():
-    visible_keys = ["PORT","CORS_ALLOW_ORIGIN","RENDER","RENDER_GIT_BRANCH","RENDER_GIT_COMMIT","RENDER_SERVICE_ID"]
-    env = {k: os.getenv(k) for k in visible_keys}
-    return JSONResponse({
-        "env": env,
-        "cwd": os.getcwd(),
-        "pythonpath": sys.path,
-        "workdir_listing": os.listdir("."),
-    })
 
 
