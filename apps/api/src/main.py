@@ -23,20 +23,7 @@ with app.app_context():
     db.create_all()
 
 # These routes should be after all other specific API routes
-@app.route("/")
-def serve_root():
-    return send_from_directory(app.static_folder, "index.html")
 
-@app.route("/<path:path>")
-def serve_static(path):
-    static_folder_path = app.static_folder
-    if static_folder_path is None:
-            return "Static folder not configured", 404
-
-    if os.path.exists(os.path.join(static_folder_path, path)):
-        return send_from_directory(static_folder_path, path)
-    else:
-        return send_from_directory(app.static_folder, "index.html")
 
 
 if __name__ == "__main__":
@@ -44,7 +31,10 @@ if __name__ == "__main__":
 
 
 
-# This is a test comment to trigger CI.
+
+
+
+
 
 
 @app.route("/debug/env")
