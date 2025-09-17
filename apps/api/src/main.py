@@ -23,6 +23,7 @@ with app.app_context():
 def health_check():
     return jsonify({\"ok\": True}), 200
 
+# /debug/env route MUST be defined before generic static file serving routes
 @app.route(\"/debug/env\")
 def debug_env():
     visible_keys = [\"PORT\",\"CORS_ALLOW_ORIGIN\",\"RENDER\",\"RENDER_GIT_BRANCH\",\"RENDER_GIT_COMMIT\",\"RENDER_SERVICE_ID\"]
@@ -34,7 +35,7 @@ def debug_env():
         \"workdir_listing\": os.listdir("."),
     })
 
-# This route should be after all other routes
+# These routes should be after all other specific API routes
 @app.route(\"/\")
 def serve_root():
     return send_from_directory(app.static_folder, \"index.html\")
