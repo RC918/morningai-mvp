@@ -208,7 +208,7 @@ jobs:
             }
             
             const jobUrl = `https://github.com/${owner}/${repo}/actions/runs/${context.runId}`;
-            const jobStatus = '${{ job.status }}';
+            const jobStatus = process.env.JOB_STATUS; // Use an environment variable for job status
             
             const commentBody = `
 <!-- evidence-package -->
