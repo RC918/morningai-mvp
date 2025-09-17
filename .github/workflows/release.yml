@@ -8,6 +8,11 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app:
+          - { name: web, path: apps/web }
+          - { name: api, path: apps/api }
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -23,10 +28,6 @@ jobs:
       - name: Generate Release Notes
         id: generate_release_notes
         run: |
-          # Placeholder for GPT-generated release notes
-          # In a real scenario, this would involve calling an AI model API
-          # to summarize changes between ${{ steps.previoustag.outputs.tag }} and ${{ github.ref_name }}
-          # and identify changed modules, risks, and rollback steps.
           echo "## Release Notes for ${{ github.ref_name }}" > release_notes.md
           echo "### Changes since ${{ steps.previoustag.outputs.tag }}" >> release_notes.md
           echo "- Changed modules: [List modules here]" >> release_notes.md
@@ -44,6 +45,186 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      # CI Checks from env-check.yml
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dotenv for check_env.mjs
+        run: npm install dotenv
+
+      - name: Create .env from GitHub Secrets
+        run: |
+          cat > ${{ matrix.app.path }}/.env << 'EOF'
+          SUPABASE_URL=${{ secrets.SB_URL }}
+          SUPABASE_ANON_KEY=${{ secrets.SB_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SB_SERVICE_ROLE_KEY }}
+          SUPABASE_JWT_SECRET=${{ secrets.SB_JWT_SECRET }}
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          REDIS_URL=${{ secrets.REDIS_URL }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          EMAIL_FROM=${{ secrets.EMAIL_FROM }}
+          SMTP_HOST=${{ secrets.SMTP_HOST }}
+          SMTP_PORT=${{ secrets.SMTP_PORT }}
+          SMTP_USER=${{ secrets.SMTP_USER }}
+          SMTP_PASS=${{ secrets.SMTP_PASS }}
+          EOF
+
+      - name: Install Node.js dependencies (web)
+        if: ${{ matrix.app.name == 'web' }}
+        working-directory: ${{ matrix.app.path }}
+        run: npm ci
+
+      - name: Run Env Check for web
+        id: env-check-web
+        if: ${{ matrix.app.name == 'web' }}
+        working-directory: ${{ matrix.app.path }}
+        run: node ../../ops/env/scripts/check_env.mjs --env-file .env --app web | tee env_check_output.txt
+
+      - name: Extract Env Check Output for web
+        id: extract-env-web
+        if: ${{ matrix.app.name == 'web' }}
+        run: |
+          ENV_MISSING=$(grep 'Missing environment variables:' env_check_output.txt | sed 's/Missing environment variables: //')
+          echo "env_missing=$ENV_MISSING" >> $GITHUB_OUTPUT
+
+      - name: Web Lint Check
+        id: web-lint-check
+        if: ${{ matrix.app.name == 'web' }}
+        working-directory: ${{ matrix.app.path }}
+        run: npm run lint
+
+      - name: Web Type Check
+        id: web-type-check
+        if: ${{ matrix.app.name == 'web' }}
+        working-directory: ${{ matrix.app.path }}
+        run: npm run typecheck -- --skipLibCheck
+
+      - name: Web Unit Tests
+        id: web-unit-tests
+        if: ${{ matrix.app.name == 'web' }}
+        working-directory: ${{ matrix.app.path }}
+        run: npm run test
+
+      - name: Web Import Smoke Test
+        id: web-import-smoke-test
+        if: ${{ matrix.app.name == 'web' }}
+        working-directory: ${{ matrix.app.path }}
+        run: npm run build
+
+      - name: Install Python dependencies (api)
+        if: ${{ matrix.app.name == 'api' }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python deps (api)
+        if: ${{ matrix.app.name == 'api' }}
+        working-directory: ${{ matrix.app.path }}
+        run: pip install -r requirements.txt
+
+      - name: Run Env Check for api
+        id: env-check-api
+        if: ${{ matrix.app.name == 'api' }}
+        working-directory: ${{ matrix.app.path }}
+        run: node ../../ops/env/scripts/check_env.mjs --env-file .env --app api | tee env_check_output.txt
+
+      - name: Extract Env Check Output for api
+        id: extract-env-api
+        if: ${{ matrix.app.name == 'api' }}
+        run: |
+          ENV_MISSING=$(grep 'Missing environment variables:' env_check_output.txt | sed 's/Missing environment variables: //')
+          echo "env_missing=$ENV_MISSING" >> $GITHUB_OUTPUT
+
+      - name: API Lint Check
+        id: api-lint-check
+        if: ${{ matrix.app.name == 'api' }}
+        working-directory: ${{ matrix.app.path }}
+        run: pip install flake8 && flake8 src/ --ignore=E402,E501,E302,W391,E117,W293
+
+      - name: API Unit Tests
+        id: api-unit-tests
+        if: ${{ matrix.app.name == 'api' }}
+        working-directory: ${{ matrix.app.path }}
+        run: pip install pytest && pytest test_health.py
+
+      - name: API Import Smoke Test
+        id: api-import-smoke-test
+        if: ${{ matrix.app.name == 'api' }}
+        working-directory: ${{ matrix.app.path }}
+        run: python -c "import src.main"
+
+      - name: API Health Check (Local)
+        id: api-health-check-local
+        if: ${{ matrix.app.name == 'api' }}
+        working-directory: ${{ matrix.app.path }}
+        run: |
+          nohup python src/main.py > api_dev.log 2>&1 &
+          sleep 10
+          curl --fail http://localhost:5000/health
+
+      - name: API Health Check (Online)
+        id: api-health-check-online
+        if: ${{ matrix.app.name == 'api' }}
+        run: |
+          RENDER_URL="https://morningai-mvp.onrender.com"
+          HEALTH_STATUS=$(curl -s -o /dev/null -w "%{http_code}" $RENDER_URL/health)
+          if [ "$HEALTH_STATUS" -eq 200 ]; then
+            echo "health_online_outcome=success" >> $GITHUB_OUTPUT
+          else
+            echo "health_online_outcome=failure" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate Evidence JSON
+        id: generate-evidence-json
+        run: |
+          PR_NUMBER="${{ github.event.pull_request.number || '' }}"
+          REPO_NAME="${{ github.repository }}"
+          COMMIT_SHA="${{ github.sha }}"
+          WEB_LINT_OUTCOME="${{ steps.web-lint-check.outcome || 'N/A' }}"
+          WEB_TYPE_OUTCOME="${{ steps.web-type-check.outcome || 'N/A' }}"
+          WEB_UNIT_TESTS_OUTCOME="${{ steps.web-unit-tests.outcome || 'N/A' }}"
+          WEB_IMPORT_SMOKE_TEST_OUTCOME="${{ steps.web-import-smoke-test.outcome || 'N/A' }}"
+          API_LINT_OUTCOME="${{ steps.api-lint-check.outcome || 'N/A' }}"
+          API_TYPE_OUTCOME="${{ steps.api-type-check.outcome || 'N/A' }}"
+          API_UNIT_TESTS_OUTCOME="${{ steps.api-unit-tests.outcome || 'N/A' }}"
+          API_IMPORT_SMOKE_TEST_OUTCOME="${{ steps.api-import-smoke-test.outcome || 'N/A' }}"
+          ENV_MISSING="${{ steps.extract-env-web.outputs.env_missing || steps.extract-env-api.outputs.env_missing || '無' }}"
+          API_HEALTH_CHECK_LOCAL_OUTCOME="${{ steps.api-health-check-local.outcome || 'N/A' }}"
+          API_HEALTH_CHECK_ONLINE_OUTCOME="${{ steps.api-health-check-online.outputs.health_online_outcome || 'N/A' }}"
+          CREATED_AT="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
+
+          EVIDENCE_JSON='{
+            "pr_number": "'$PR_NUMBER'",
+            "repo": "'$REPO_NAME'",
+            "commit_sha": "'$COMMIT_SHA'",
+            "tests": {
+              "web_lint": "'$WEB_LINT_OUTCOME'",
+              "web_type": "'$WEB_TYPE_OUTCOME'",
+              "web_unit_tests": "'$WEB_UNIT_TESTS_OUTCOME'",
+              "web_import_smoke_test": "'$WEB_IMPORT_SMOKE_TEST_OUTCOME'",
+              "api_lint": "'$API_LINT_OUTCOME'",
+              "api_type": "'$API_TYPE_OUTCOME'",
+              "api_unit_tests": "'$API_UNIT_TESTS_OUTCOME'",
+              "api_import_smoke_test": "'$API_IMPORT_SMOKE_TEST_OUTCOME'"
+            },
+            "coverage": "N/A",
+            "env_missing": "'$ENV_MISSING'",
+            "health_local": "'$API_HEALTH_CHECK_LOCAL_OUTCOME'",
+            "health_online": "'$API_HEALTH_CHECK_ONLINE_OUTCOME'",
+            "ai_summary": "N/A",
+            "created_at": "'$CREATED_AT'"
+          }'
+          echo "$EVIDENCE_JSON" > evidence.json
+
+      - name: Upload Evidence Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-json-${{ matrix.app.name }}
+          path: evidence.json
+
+      # Deployment steps will go here
+
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:
@@ -58,5 +239,34 @@ jobs:
         with:
           name: supabase-schema-dump
           path: supabase_schema_dump.sql
+
+
+
+
+
+      - name: Deploy to Vercel
+        if: ${{ matrix.app.name == 'web' }}
+        uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+
+      - name: Deploy to Render
+        if: ${{ matrix.app.name == 'api' }}
+        uses: johnbeynon/render-deploy-action@v0.0.1
+        with:
+          service-id: ${{ secrets.RENDER_SERVICE_ID }}
+          api-key: ${{ secrets.RENDER_API_KEY }}
+
+      - name: Send Slack Notification
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_USERNAME: 'Release Bot'
+          SLACK_ICON_EMOJI: ':rocket:'
+          SLACK_COLOR: '#36a64f'
+          SLACK_MESSAGE: '🚀 New release ${{ github.ref_name }} deployed successfully!'
 
 
