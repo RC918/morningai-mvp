@@ -58,3 +58,21 @@ def debug_env():
     })
 
 
+
+
+
+import os, sys
+from flask import jsonify
+
+@app.route("/debug/env")
+def debug_env():
+    visible_keys = ["PORT","CORS_ALLOW_ORIGIN","RENDER","RENDER_GIT_BRANCH","RENDER_GIT_COMMIT","RENDER_SERVICE_ID"]
+    env = {k: os.getenv(k) for k in visible_keys}
+    return jsonify({
+        "env": env,
+        "cwd": os.getcwd(),
+        "pythonpath": sys.path,
+        "workdir_listing": os.listdir("."),
+    })
+
+
