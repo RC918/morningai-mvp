@@ -420,9 +420,9 @@ const DecisionApproval = () => {
                       
                       <div className="space-y-4">
                         <div>
-                          <Label htmlFor="comment">審批意見 (可選)</Label>
+                          <Label htmlFor="approvalComment">審批意見 (可選)</Label>
                           <Textarea
-                            id="comment"
+                            id="approvalComment"
                             placeholder="請輸入審批意見或備註..."
                             value={approvalComment}
                             onChange={(e) => setApprovalComment(e.target.value)}
@@ -458,6 +458,6 @@ const DecisionApproval = () => {
   )
 }
 
-export default DecisionApproval
+export default DecisionApproval;
 
 
