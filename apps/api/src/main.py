@@ -17,7 +17,13 @@ from src.routes.admin import admin_bp
 from src.routes.two_factor import two_factor_bp
 
 app = Flask(__name__)
-CORS(app)
+CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "https://morningai-mvp.vercel.app,https://morningai-an9nof.manus.space").split(",")
+CORS(app, origins=CORS_ORIGINS, supports_credentials=True)
+
+@app.before_request
+def handle_options_request():
+    if request.method == "OPTIONS":
+        return '', 200
 
 # 配置資料庫
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///app.db")
