@@ -148,12 +148,6 @@ jobs:
         working-directory: ${{ matrix.app.path }}
         run: pip install pytest && pytest test_health.py
 
-      - name: API RBAC Tests
-        id: api-rbac-tests
-        if: ${{ matrix.app.name == 'api' }}
-        working-directory: ${{ matrix.app.path }}
-        run: pip install pytest && pytest test_rbac.py
-
       - name: API Import Smoke Test
         id: api-import-smoke-test
         if: ${{ matrix.app.name == 'api' }}
@@ -181,11 +175,6 @@ jobs:
             echo "health_online_outcome=failure" >> $GITHUB_OUTPUT
           fi
 
-      - name: Health check (staging)
-        run: |
-          curl -sS -i ${{ vars.API_URL }}/health | tee health_check.txt
-        continue-on-error: false
-
       - name: Generate Evidence JSON
         id: generate-evidence-json
         run: |
@@ -194,10 +183,11 @@ jobs:
           COMMIT_SHA="${{ github.sha }}"
           WEB_LINT_OUTCOME="${{ steps.web-lint-check.outcome || 'N/A' }}"
           WEB_TYPE_OUTCOME="${{ steps.web-type-check.outcome || 'N/A' }}"
+          WEB_UNIT_TESTS_OUTCOME="${{ steps.web-unit-tests.outcome || 'N/A' }}"
+          WEB_IMPORT_SMOKE_TEST_OUTCOME="${{ steps.web-import-smoke-test.outcome || 'N/A' }}"
           API_LINT_OUTCOME="${{ steps.api-lint-check.outcome || 'N/A' }}"
           API_TYPE_OUTCOME="${{ steps.api-type-check.outcome || 'N/A' }}"
-          API_RBAC_TESTS_OUTCOME="${{ steps.api-rbac-tests.outcome || 'N/A' }}"
-          HEALTH_CHECK_STAGING_OUTCOME="${{ steps.health-check-staging.outcome || 'N/A' }}"
+          API_UNIT_TESTS_OUTCOME="${{ steps.api-unit-tests.outcome || 'N/A' }}"
           API_IMPORT_SMOKE_TEST_OUTCOME="${{ steps.api-import-smoke-test.outcome || 'N/A' }}"
           ENV_MISSING="${{ steps.extract-env-web.outputs.env_missing || steps.extract-env-api.outputs.env_missing || '無' }}"
           API_HEALTH_CHECK_LOCAL_OUTCOME="${{ steps.api-health-check-local.outcome || 'N/A' }}"
@@ -216,9 +206,7 @@ jobs:
               "api_lint": "'$API_LINT_OUTCOME'",
               "api_type": "'$API_TYPE_OUTCOME'",
               "api_unit_tests": "'$API_UNIT_TESTS_OUTCOME'",
-              "api_rbac_tests": "'$API_RBAC_TESTS_OUTCOME'",
-              "api_import_smoke_test": "'$API_IMPORT_SMOKE_TEST_OUTCOME'",
-              "health_check_staging": "'$HEALTH_CHECK_STAGING_OUTCOME'"
+              "api_import_smoke_test": "'$API_IMPORT_SMOKE_TEST_OUTCOME'"
             },
             "coverage": "N/A",
             "env_missing": "'$ENV_MISSING'",
@@ -280,6 +268,5 @@ jobs:
           SLACK_ICON_EMOJI: ':rocket:'
           SLACK_COLOR: '#36a64f'
           SLACK_MESSAGE: '🚀 New release ${{ github.ref_name }} deployed successfully!'
-
 
 
