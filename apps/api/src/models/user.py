@@ -92,6 +92,3 @@ class User(db.Model):
         return data
 
 
-
-# Temporary comment to force change
-
