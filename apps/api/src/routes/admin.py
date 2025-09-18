@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request
+
 from src.models.user import User, db
-from src.routes.auth import token_required, admin_required
+from src.routes.auth import admin_required, token_required
 
 admin_bp = Blueprint("admin", __name__)
 
@@ -48,7 +49,6 @@ def get_user_by_id(current_user, user_id):
     try:
         user = User.query.get_or_404(user_id)
 
-
         return jsonify({"user": user.to_dict()}), 200
 
     except Exception as e:
@@ -85,14 +85,11 @@ def update_user_role(current_user, user_id):
 
         user = User.query.get_or_404(user_id)
 
-
         user.role = new_role
         db.session.commit()
 
         return (
-            jsonify(
-                {"message": "User role updated successfully", "user": user.to_dict()}
-            ),
+            jsonify({"message": "User role updated successfully", "user": user.to_dict()}),
             200,
         )
 
@@ -131,7 +128,6 @@ def update_user_status(current_user, user_id):
 
         user = User.query.get_or_404(user_id)
 
-
         user.is_active = bool(is_active)
         db.session.commit()
 
@@ -151,5 +147,3 @@ def update_user_status(current_user, user_id):
             jsonify({"error": "Failed to update user status", "details": str(e)}),
             500,
         )
-
-

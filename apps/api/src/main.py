@@ -1,28 +1,23 @@
 import os
 
-from flask import Flask, jsonify, request
-from flask_sqlalchemy import SQLAlchemy
-
 # 導入 JWT 相關庫
-import jwt
-from datetime import datetime, timedelta
+from datetime import timedelta
 
+from flask import Flask, jsonify
+
+# 導入 APScheduler
+from flask_apscheduler import APScheduler
 from flask_cors import CORS
 
 # 導入資料庫和模型
 from src.database import db
 from src.models.user import User
-from src.models.jwt_blacklist import JWTBlacklist
-from src.decorators import require_role
-
-# 導入 APScheduler
-from flask_apscheduler import APScheduler
+from src.routes.admin import admin_bp
 
 # 導入路由
 from src.routes.auth import auth_bp
-from src.routes.admin import admin_bp
-from src.routes.two_factor import two_factor_bp
 from src.routes.jwt_blacklist import jwt_blacklist_bp
+from src.routes.two_factor import two_factor_bp
 
 app = Flask(__name__)
 CORS(app)
@@ -32,7 +27,9 @@ app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:/
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # 配置 JWT
-app.config["JWT_SECRET_KEY"] = os.environ.get("JWT_SECRET_KEY", "super-secret")  # 替換為您的秘密金鑰
+app.config["JWT_SECRET_KEY"] = os.environ.get(
+    "JWT_SECRET_KEY", "super-secret"
+)  # 替換為您的秘密金鑰
 app.config["JWT_ACCESS_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
 
 db.init_app(app)
@@ -43,13 +40,16 @@ scheduler = APScheduler()
 scheduler.init_app(app)
 scheduler.start()
 
+
 # 添加定時任務：每小時清理一次過期的 JWT 黑名單
 @scheduler.task("interval", id="cleanup_jwt_blacklist", hours=1, misfire_grace_time=900)
 def cleanup_jwt_blacklist_job():
     with app.app_context():
         from src.models.jwt_blacklist import JWTBlacklist
+
         cleaned_count = JWTBlacklist.cleanup_expired_tokens()
         print(f"清理了 {cleaned_count} 個過期的 JWT 黑名單 token")
+
 
 # 註冊藍圖
 app.register_blueprint(auth_bp, url_prefix="/api")
@@ -57,13 +57,16 @@ app.register_blueprint(admin_bp, url_prefix="/api/admin")
 app.register_blueprint(two_factor_bp, url_prefix="/api")
 app.register_blueprint(jwt_blacklist_bp, url_prefix="/api")
 
+
 @app.route("/")
 def home():
     return jsonify(message="Welcome to MorningAI MVP API!")
 
+
 @app.route("/health")
 def health_check():
     return jsonify(status="ok", message="API is healthy")
+
 
 # 在應用上下文中創建資料庫表和管理員用戶
 with app.app_context():
@@ -75,11 +78,11 @@ with app.app_context():
         existing_admin = User.query.filter_by(username="admin").first()
         if not existing_admin:
             admin_user = User(
-                username="admin", 
-                email="admin@morningai.com", 
-                role="admin", 
+                username="admin",
+                email="admin@morningai.com",
+                role="admin",
                 is_active=True,
-                is_email_verified=True
+                is_email_verified=True,
             )
             admin_user.set_password("admin123")
             db.session.add(admin_user)
@@ -92,5 +95,3 @@ with app.app_context():
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=os.environ.get("PORT", 5000))
-
-
