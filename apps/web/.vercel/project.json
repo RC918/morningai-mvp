@@ -1,0 +1,16 @@
+{
+  "projectId": "prj_sDB39CsQV8ay3gdTOiDGH4vcfLEI",
+  "orgId": "team_Yf6MaEa5YoqhFpklL19AeZTD",
+  "projectName": "morningai-mvp-web",
+  "settings": {
+    "createdAt": 1758006749401,
+    "framework": "vite",
+    "devCommand": null,
+    "installCommand": "npm install",
+    "buildCommand": "npm run build",
+    "outputDirectory": "dist",
+    "rootDirectory": "apps/web",
+    "directoryListing": false,
+    "nodeVersion": "22.x"
+  }
+}

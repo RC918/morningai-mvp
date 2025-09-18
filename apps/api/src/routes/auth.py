@@ -1,5 +1,6 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, request, jsonify, current_app
 from src.models.user import User, db
+from src.decorators import token_required, require_role
 import jwt
 import datetime
 import os
@@ -10,40 +11,6 @@ auth_bp = Blueprint("auth", __name__)
 JWT_SECRET = os.environ.get("JWT_SECRET", "your-secret-key-here")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = 24
-
-def token_required(f):
-    """JWT 令牌驗證裝飾器"""
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        token = None
-        
-        # 從 Authorization header 獲取令牌
-        if "Authorization" in request.headers:
-            auth_header = request.headers["Authorization"]
-            try:
-                token = auth_header.split(" ")[1]  # Bearer <token>
-            except IndexError:
-                return jsonify({"message": "令牌格式無效"}), 401
-        
-        if not token:
-            return jsonify({"message": "缺少令牌"}), 401
-        
-        try:
-            # 解碼令牌
-            data = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-            current_user = User.query.filter_by(id=data["user_id"]).first()
-            
-            if not current_user or not current_user.is_active:
-                return jsonify({"message": "用戶不存在或已被禁用"}), 401
-                
-        except jwt.ExpiredSignatureError:
-            return jsonify({"message": "令牌已過期"}), 401
-        except jwt.InvalidTokenError:
-            return jsonify({"message": "令牌無效"}), 401
-        
-        return f(current_user, *args, **kwargs)
-    
-    return decorated
 
 def admin_required(f):
     """管理員權限驗證裝飾器"""
@@ -139,11 +106,16 @@ def login():
             if not user.verify_2fa_token(otp):
                 return jsonify({"message": "OTP 驗證碼錯誤"}), 401
         
-        # 生成 JWT 令牌
+        # 生成 JWT 令牌（包含 JTI）
+        import uuid
+        jti = str(uuid.uuid4())  # 生成唯一的 JWT ID
+        
         payload = {
             "user_id": user.id,
+            "sub": user.id,  # 標準的 subject 聲明
             "username": user.username,
             "role": user.role,
+            "jti": jti,  # JWT ID，用於黑名單管理
             "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=JWT_EXPIRATION_HOURS)
         }
         

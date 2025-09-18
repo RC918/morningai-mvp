@@ -9,12 +9,14 @@ from datetime import timedelta
 # 導入資料庫和模型
 from src.database import db
 from src.models.user import User
+from src.models.jwt_blacklist import JWTBlacklist
 from src.decorators import require_role
 
 # 導入路由
 from src.routes.auth import auth_bp
 from src.routes.admin import admin_bp
 from src.routes.two_factor import two_factor_bp
+from src.routes.jwt_blacklist import jwt_blacklist_bp
 
 app = Flask(__name__)
 CORS(app)
@@ -35,6 +37,7 @@ db.init_app(app)
 app.register_blueprint(auth_bp, url_prefix="/api")
 app.register_blueprint(admin_bp, url_prefix="/api/admin")
 app.register_blueprint(two_factor_bp, url_prefix="/api")
+app.register_blueprint(jwt_blacklist_bp, url_prefix="/api")
 
 @app.route("/")
 def home():
