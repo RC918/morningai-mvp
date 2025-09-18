@@ -1,8 +1,6 @@
 from datetime import datetime
 import pyotp
-import qrcode
-import io
-import base64
+
 
 from werkzeug.security import check_password_hash, generate_password_hash
 
@@ -17,8 +15,7 @@ class User(db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(50), nullable=False, default="user") # 'admin' or 'user'
     is_active = db.Column(db.Boolean, default=True)
-    is_email_verified = db.Column(db.Boolean, default=False)
-    # 2FA 相關欄位
+    is_email_verified = db.Column(db.Boolean, default=False)  # 2FA 相關欄位
     two_factor_secret = db.Column(db.String(32), nullable=True)
     two_factor_enabled = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

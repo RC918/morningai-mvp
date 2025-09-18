@@ -1,11 +1,12 @@
 from flask import Blueprint, request, jsonify, current_app
-from src.models.user import User
+
 from src.database import db
 from src.decorators import token_required
-import pyotp
+
 import qrcode
 import io
 import base64
+
 
 two_factor_bp = Blueprint('two_factor', __name__)
 
