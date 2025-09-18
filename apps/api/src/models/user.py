@@ -1,6 +1,10 @@
 from src.database import db
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
+import pyotp
+import qrcode
+import io
+import base64
 
 class User(db.Model):
     __table_args__ = {"extend_existing": True}
@@ -11,6 +15,9 @@ class User(db.Model):
     role = db.Column(db.String(50), nullable=False, default="user") # 'admin' or 'user'
     is_active = db.Column(db.Boolean, default=True)
     is_email_verified = db.Column(db.Boolean, default=False)
+    # 2FA 相關欄位
+    two_factor_secret = db.Column(db.String(32), nullable=True)
+    two_factor_enabled = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -29,6 +36,40 @@ class User(db.Model):
         """檢查是否為管理員"""
         return self.role == 'admin'
 
+    def generate_2fa_secret(self):
+        """生成 2FA 密鑰"""
+        if not self.two_factor_secret:
+            self.two_factor_secret = pyotp.random_base32()
+        return self.two_factor_secret
+
+    def get_2fa_uri(self, issuer_name="MorningAI"):
+        """獲取 2FA URI 用於生成 QR 碼"""
+        if not self.two_factor_secret:
+            self.generate_2fa_secret()
+        
+        totp = pyotp.TOTP(self.two_factor_secret)
+        return totp.provisioning_uri(
+            name=self.email,
+            issuer_name=issuer_name
+        )
+
+    def verify_2fa_token(self, token):
+        """驗證 2FA token"""
+        if not self.two_factor_secret:
+            return False
+        
+        totp = pyotp.TOTP(self.two_factor_secret)
+        return totp.verify(token, valid_window=1)
+
+    def enable_2fa(self):
+        """啟用 2FA"""
+        self.two_factor_enabled = True
+
+    def disable_2fa(self):
+        """停用 2FA"""
+        self.two_factor_enabled = False
+        self.two_factor_secret = None
+
     def to_dict(self, include_sensitive=False):
         """轉換為字典，可選擇是否包含敏感信息"""
         data = {
@@ -38,12 +79,14 @@ class User(db.Model):
             'role': self.role,
             'is_active': self.is_active,
             'is_email_verified': self.is_email_verified,
+            'two_factor_enabled': self.two_factor_enabled,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
         
         if include_sensitive:
             data['password_hash'] = self.password_hash
+            data['two_factor_secret'] = self.two_factor_secret
             
         return data
 

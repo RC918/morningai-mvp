@@ -14,6 +14,7 @@ from src.decorators import require_role
 # 導入路由
 from src.routes.auth import auth_bp
 from src.routes.admin import admin_bp
+from src.routes.two_factor import two_factor_bp
 
 app = Flask(__name__)
 CORS(app)
@@ -31,8 +32,9 @@ jwt = JWTManager(app)
 db.init_app(app)
 
 # 註冊藍圖
-app.register_blueprint(auth_bp, url_prefix="/api/auth")
+app.register_blueprint(auth_bp, url_prefix="/api")
 app.register_blueprint(admin_bp, url_prefix="/api/admin")
+app.register_blueprint(two_factor_bp, url_prefix="/api")
 
 @app.route("/")
 def home():

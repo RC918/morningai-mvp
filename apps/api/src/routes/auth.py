@@ -110,6 +110,7 @@ def login():
         email = data.get("email")
         username = data.get("username")
         password = data.get("password")
+        otp = data.get("otp")  # 2FA OTP 驗證碼
         
         if not (email or username) or not password:
             return jsonify({"message": "郵箱/用戶名和密碼不能為空"}), 400
@@ -126,6 +127,17 @@ def login():
         
         if not user.is_active:
             return jsonify({"message": "帳戶已被禁用"}), 401
+        
+        # 檢查 2FA
+        if user.two_factor_enabled:
+            if not otp:
+                return jsonify({
+                    "message": "此帳戶已啟用 2FA，請提供 OTP 驗證碼",
+                    "requires_2fa": True
+                }), 401
+            
+            if not user.verify_2fa_token(otp):
+                return jsonify({"message": "OTP 驗證碼錯誤"}), 401
         
         # 生成 JWT 令牌
         payload = {
