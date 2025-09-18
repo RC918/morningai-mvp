@@ -40,9 +40,11 @@ app.register_blueprint(two_factor_bp, url_prefix="/api")
 def home():
     return jsonify(message="Welcome to MorningAI MVP API!")
 
+
 @app.route("/health")
 def health_check():
     return jsonify(status="ok", message="API is healthy")
+
 
 # 在應用上下文中創建資料庫表和管理員用戶
 with app.app_context():

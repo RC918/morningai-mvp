@@ -26,7 +26,7 @@ def get_all_users(current_user):
         )
 
     except Exception as e:
-        return jsonify({"error": "Failed to get users", "details": str(e)}), 500
+        return jsonify({"error": "Failed to get users", "details": str(e)}), 50
 
 @admin_bp.route("/users/<int:user_id>", methods=["GET"])
 @token_required
@@ -46,7 +46,6 @@ def get_user_by_id(current_user, user_id):
     """
     try:
         user = User.query.get_or_404(user_id)
-
 
         return jsonify({"user": user.to_dict()}), 200
 
@@ -82,7 +81,6 @@ def update_user_role(current_user, user_id):
             return jsonify({"error": 'Invalid role. Must be "admin" or "user"'}), 400
 
         user = User.query.get_or_404(user_id)
-
 
         user.role = new_role
         db.session.commit()
@@ -127,7 +125,6 @@ def update_user_status(current_user, user_id):
             return jsonify({"error": "is_active field is required"}), 400
 
         user = User.query.get_or_404(user_id)
-
 
         user.is_active = bool(is_active)
         db.session.commit()
