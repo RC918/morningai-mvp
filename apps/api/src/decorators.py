@@ -75,3 +75,50 @@ def get_current_user():
     """
     return getattr(request, 'current_user', None)
 
+
+
+def token_required(f):
+    """
+    JWT Token 驗證裝飾器
+    """
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        auth_header = request.headers.get("Authorization")
+        if not auth_header:
+            return jsonify({"error": "Missing authorization header"}), 401
+
+        try:
+            token_type, token = auth_header.split(" ")
+            if token_type.lower() != "bearer":
+                return jsonify({"error": "Invalid authorization header format"}), 401
+        except ValueError:
+            return jsonify({"error": "Invalid authorization header format"}), 401
+
+        try:
+            payload = jwt.decode(
+                token,
+                current_app.config["JWT_SECRET_KEY"],
+                algorithms=["HS256"]
+            )
+
+            user_id = payload.get("sub")
+            if not user_id:
+                return jsonify({"error": "Invalid token payload"}), 401
+
+            # 將用戶信息添加到請求上下文
+            request.current_user = User.query.get(user_id)
+            if not request.current_user:
+                return jsonify({"error": "User not found"}), 401
+
+            return f(request.current_user, *args, **kwargs)
+
+        except jwt.ExpiredSignatureError:
+            return jsonify({"error": "Token has expired"}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({"error": "Invalid token"}), 401
+        except Exception as e:
+            return jsonify({"error": f"Token validation failed: {str(e)}"}), 401
+
+    return decorated_function
+
+
