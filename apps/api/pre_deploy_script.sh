@@ -1,4 +1,4 @@
-cd /app/apps/api
+cd /opt/render/project/src/apps/api
 echo "Current working directory: $(pwd)"
 echo "PYTHONPATH: $PYTHONPATH"
 export PYTHONPATH=$PYTHONPATH:.
