@@ -155,7 +155,7 @@ const DecisionApproval = () => {
   }
 
   const handleReject = async (decisionId) => {
-    if (!_approvalComment.trim()) {
+    if (!approvalComment.trim()) {
       toast({
         title: "請提供拒絕理由",
         description: "拒絕決策時必須說明原因",
@@ -424,7 +424,7 @@ const DecisionApproval = () => {
                           <Textarea
                             id="approvalComment"
                             placeholder="請輸入審批意見或備註..."
-                            value={_approvalComment}
+                            value={approvalComment}
                             onChange={(e) => setApprovalComment(e.target.value)}
                             className="mt-2"
                           />
