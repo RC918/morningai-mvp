@@ -68,30 +68,48 @@ def health_check():
     return jsonify(status="ok", message="API is healthy")
 
 
-# 在應用上下文中創建資料庫表和管理員用戶
+# 在應用上下文中安全地初始化資料庫表和管理員用戶
 with app.app_context():
-    db.create_all()
-    # 檢查並創建默認管理員用戶
-    admin_user = User.query.filter_by(email="admin@morningai.com").first()
-    if not admin_user:
-        # 也檢查是否已經有 username='admin' 的用戶
-        existing_admin = User.query.filter_by(username="admin").first()
-        if not existing_admin:
-            admin_user = User(
-                username="admin",
-                email="admin@morningai.com",
-                role="admin",
-                is_active=True,
-                is_email_verified=True,
-            )
-            admin_user.set_password("admin123")
-            db.session.add(admin_user)
-            db.session.commit()
-            print("Default admin user created: admin@morningai.com/admin123")
+    try:
+        # 使用更安全的方式創建表格，避免衝突
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        existing_tables = inspector.get_table_names()
+        
+        # 只創建不存在的表格
+        if 'user' not in existing_tables or 'jwt_blacklist' not in existing_tables:
+            print("Creating missing database tables...")
+            db.create_all()
+            print("Database tables created successfully")
         else:
-            print("Admin user already exists with username 'admin'")
-    else:
-        print("Admin user already exists with email 'admin@morningai.com'")
+            print("Database tables already exist, skipping creation")
+            
+        # 檢查並創建默認管理員用戶
+        admin_user = User.query.filter_by(email="admin@morningai.com").first()
+        if not admin_user:
+            # 也檢查是否已經有 username='admin' 的用戶
+            existing_admin = User.query.filter_by(username="admin").first()
+            if not existing_admin:
+                admin_user = User(
+                    username="admin",
+                    email="admin@morningai.com",
+                    role="admin",
+                    is_active=True,
+                    is_email_verified=True,
+                )
+                admin_user.set_password("admin123")
+                db.session.add(admin_user)
+                db.session.commit()
+                print("Default admin user created: admin@morningai.com/admin123")
+            else:
+                print("Admin user already exists with username 'admin'")
+        else:
+            print("Admin user already exists with email 'admin@morningai.com'")
+            
+    except Exception as e:
+        print(f"Database initialization error: {e}")
+        # 如果資料庫初始化失敗，嘗試繼續運行（可能表格已存在）
+        print("Continuing with existing database structure...")
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=os.environ.get("PORT", 5000))

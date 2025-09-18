@@ -48,29 +48,39 @@ class JWTBlacklist(db.Model):
         if not jti:
             return None
 
-        # 檢查是否已存在
-        existing = cls.query.filter_by(jti=jti).first()
-        if existing:
-            return existing
+        try:
+            # 檢查是否已存在
+            existing = cls.query.filter_by(jti=jti).first()
+            if existing:
+                return existing
 
-        blacklisted_token = cls(
-            jti=jti, user_id=user_id, token_type=token_type, expires_at=expires_at, reason=reason
-        )
-        db.session.add(blacklisted_token)
-        db.session.commit()
-        return blacklisted_token
+            blacklisted_token = cls(
+                jti=jti, user_id=user_id, token_type=token_type, expires_at=expires_at, reason=reason
+            )
+            db.session.add(blacklisted_token)
+            db.session.commit()
+            return blacklisted_token
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error adding token to blacklist: {e}")
+            return None
 
     @classmethod
     def cleanup_expired_tokens(cls):
         """清理已過期的黑名單 token"""
-        expired_tokens = cls.query.filter(cls.expires_at < datetime.utcnow()).all()
-        count = len(expired_tokens)
+        try:
+            expired_tokens = cls.query.filter(cls.expires_at < datetime.utcnow()).all()
+            count = len(expired_tokens)
 
-        for token in expired_tokens:
-            db.session.delete(token)
+            for token in expired_tokens:
+                db.session.delete(token)
 
-        db.session.commit()
-        return count
+            db.session.commit()
+            return count
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error cleaning up expired tokens: {e}")
+            return 0
 
     def to_dict(self):
         """轉換為字典"""
