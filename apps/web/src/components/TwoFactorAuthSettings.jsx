@@ -8,61 +8,61 @@ import { useAuth } from '../hooks/useAuth'; // 假設有一個 useAuth hook 來�
 const TwoFactorAuthSettings = () => {
   const { user, token } = useAuth(); // 從 Auth Context 獲取用戶和 token
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(user?.two_factor_enabled || false);
-  const [qrCode, setQrCode] = useState('');
-  const [secret, setSecret] = useState('');
-  const [otp, setOtp] = useState('');
-  const [message, setMessage] = useState('');
+  const [qrCode, setQrCode] = useState("");
+  const [secret, setSecret] = useState("");
+  const [otp, setOtp] = useState("");
+  const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'https://morningai-mvp.onrender.com/api';
-
-  useEffect(() => {
-    if (token) {
-      fetchTwoFactorStatus();
-    }
-  }, [token]);
+  const API_URL = import.meta.env.VITE_API_URL || "https://morningai-mvp.onrender.com/api";
 
   const fetchTwoFactorStatus = async () => {
     try {
       const response = await fetch(`${API_URL}/auth/2fa/status`, {
         headers: {
-          'Authorization': `Bearer ${token}`,
+          "Authorization": `Bearer ${token}`,
         },
       });
       const data = await response.json();
       if (response.ok) {
         setTwoFactorEnabled(data.two_factor_enabled);
       } else {
-        setMessage(data.message || '獲取 2FA 狀態失敗');
+        setMessage(data.message || "獲取 2FA 狀態失敗");
       }
     } catch (error) {
-      console.error('Error fetching 2FA status:', error);
-      setMessage('獲取 2FA 狀態時發生錯誤');
+      console.error("Error fetching 2FA status:", error);
+      setMessage("獲取 2FA 狀態時發生錯誤");
     }
   };
 
+  useEffect(() => {
+    if (token) {
+      fetchTwoFactorStatus();
+    }
+  }, [token, fetchTwoFactorStatus]); // Added fetchTwoFactorStatus to dependency array
+
   const handleSetup2FA = async () => {
     setLoading(true);
-    setMessage('');
+    setMessage("");
     try {
       const response = await fetch(`${API_URL}/auth/2fa/setup`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
       });
       const data = await response.json();
       if (response.ok) {
         setQrCode(data.qr_code);
         setSecret(data.secret);
-        setMessage('請掃描 QR 碼並輸入 OTP 進行驗證');
+        setMessage("請掃描 QR 碼並輸入 OTP 進行驗證");
       } else {
-        setMessage(data.message || '2FA 設置失敗');
+        setMessage(data.message || "2FA 設置失敗");
       }
     } catch (error) {
-      console.error('Error setting up 2FA:', error);
-      setMessage('設置 2FA 時發生錯誤');
+      console.error("Error setting up 2FA:", error);
+      setMessage("設置 2FA 時發生錯誤");
     } finally {
       setLoading(false);
     }
@@ -70,59 +70,57 @@ const TwoFactorAuthSettings = () => {
 
   const handleEnable2FA = async () => {
     setLoading(true);
-    setMessage('');
+    setMessage("");
     try {
       const response = await fetch(`${API_URL}/auth/2fa/enable`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ otp }),
       });
       const data = await response.json();
       if (response.ok) {
         setTwoFactorEnabled(true);
-        setQrCode('');
-        setSecret('');
-        setOtp('');
-        setMessage('2FA 已成功啟用');
+        setQrCode("");
+        setSecret("");
+        setOtp("");
+        setMessage("2FA 已成功啟用");
       } else {
-        setMessage(data.message || '2FA 啟用失敗');
+        setMessage(data.message || "2FA 啟用失敗");
       }
     } catch (error) {
-      console.error('Error enabling 2FA:', error);
-      setMessage('啟用 2FA 時發生錯誤');
-    } finally {
-      setLoading(false);
+      console.error("Error enabling 2FA:", error);
+      setMessage("啟用 2FA 時發生錯誤");
     }
   };
 
   const handleDisable2FA = async () => {
     setLoading(true);
-    setMessage('');
+    setMessage("");
     try {
       const response = await fetch(`${API_URL}/auth/2fa/disable`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({ otp }),
       });
       const data = await response.json();
       if (response.ok) {
         setTwoFactorEnabled(false);
-        setQrCode('');
-        setSecret('');
-        setOtp('');
-        setMessage('2FA 已成功停用');
+        setQrCode("");
+        setSecret("");
+        setOtp("");
+        setMessage("2FA 已成功停用");
       } else {
-        setMessage(data.message || '2FA 停用失敗');
+        setMessage(data.message || "2FA 停用失敗");
       }
     } catch (error) {
-      console.error('Error disabling 2FA:', error);
-      setMessage('停用 2FA 時發生錯誤');
+      console.error("Error disabling 2FA:", error);
+      setMessage("停用 2FA 時發生錯誤");
     } finally {
       setLoading(false);
     }

@@ -112,7 +112,8 @@ const DecisionApproval = () => {
     }
   ])
 
-  const [selectedDecision, setSelectedDecision] = useState(null)  const [approvalComment, setApprovalComment] = useState(\'\')
+  const [selectedDecision, setSelectedDecision] = useState(null)
+  const [approvalComment, setApprovalComment] = useState('')
   useEffect(() => {
     // 模擬自動倒計時
     const interval = setInterval(() => {
@@ -153,8 +154,8 @@ const DecisionApproval = () => {
     }
   }
 
-  const handleReject = async (decisionId, comment) => {
-    if (!comment.trim()) {
+  const handleReject = async (decisionId) => {
+    if (!approvalComment.trim()) {
       toast({
         title: "請提供拒絕理由",
         description: "拒絕決策時必須說明原因",
@@ -432,7 +433,7 @@ const DecisionApproval = () => {
                         <div className="flex items-center justify-end space-x-3">
                           <Button
                             variant="outline"
-                            onClick={() => handleReject(decision.id, approvalComment)}
+                            onClick={() => handleReject(decision.id)}
                           >
                             <XCircle className="w-4 h-4 mr-2" />
                             拒絕
@@ -447,21 +448,6 @@ const DecisionApproval = () => {
                       </div>
                     </DialogContent>
                   </Dialog>
-                  
-                  <Button
-                    variant="outline"
-                    onClick={() => handleReject(decision.id, '手動拒絕')}
-                  >
-                    <XCircle className="w-4 h-4 mr-2" />
-                    拒絕
-                  </Button>
-                  
-                  <Button
-                    onClick={() => handleApprove(decision.id)}
-                  >
-                    <CheckCircle className="w-4 h-4 mr-2" />
-                    批准
-                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -473,4 +459,5 @@ const DecisionApproval = () => {
 }
 
 export default DecisionApproval
+
 
