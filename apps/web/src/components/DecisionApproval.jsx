@@ -129,7 +129,7 @@ const DecisionApproval = () => {
     return () => clearInterval(interval)
   }, [])
 
-  const handleApprove = async (decisionId, comment = '') => {
+  const handleApprove = async (decisionId) => {
     try {
       // 模擬API調用
       await new Promise(resolve => setTimeout(resolve, 1000))
@@ -440,7 +440,7 @@ const DecisionApproval = () => {
                             拒絕
                           </Button>
                           <Button
-                            onClick={() => handleApprove(decision.id, approvalComment)}
+                            onClick={() => handleApprove(decision.id)}
                           >
                             <CheckCircle className="w-4 h-4 mr-2" />
                             批准執行
