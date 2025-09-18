@@ -1,0 +1,21 @@
+{
+  "pr_number": "4",
+  "repo": "RC918/morningai-mvp",
+  "commit_sha": "57fae3c74186a0fb20a444abb9783982f2b5e2f6",
+  "tests": {
+    "web_lint": "skipped",
+    "web_type": "skipped",
+    "web_unit_tests": "skipped",
+    "web_import_smoke_test": "skipped",
+    "api_lint": "success",
+    "api_type": "N/A",
+    "api_unit_tests": "success",
+    "api_import_smoke_test": "success"
+  },
+  "coverage": "N/A",
+  "env_missing": "無",
+  "health_local": "success",
+  "health_online": "success",
+  "ai_summary": "N/A",
+  "created_at": "2025-09-17T16:54:40Z"
+}
