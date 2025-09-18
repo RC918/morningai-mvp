@@ -4,7 +4,7 @@ import tailwindcss from 'tailwindcss/plugin'
 import path from 'path'
 import { fileURLToPath } from 'url'
 
-// https://vite.dev/config/
+// https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react(),tailwindcss()],
   resolve: {
@@ -12,5 +12,11 @@ export default defineConfig({
       "@": path.resolve(path.dirname(fileURLToPath(import.meta.url)), "./src"),
     },
   },
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: './src/setupTests.js',
+  },
 })
+
 

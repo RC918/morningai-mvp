@@ -3,7 +3,8 @@ import sys
 
 # 確保 Python 能夠找到 src 包
 # 將 apps/api 的父目錄添加到 sys.path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+current_dir = os.path.abspath(os.path.dirname(__file__))
+sys.path.insert(0, os.path.abspath(os.path.join(current_dir, '..')))
 
 print(f"DEBUG: sys.path at startup: {sys.path}") # 添加這行來打印 sys.path
 
@@ -14,8 +15,9 @@ from src.routes.user import user_bp
 from src.routes.auth import auth_bp
 from src.routes.admin import admin_bp # 導入 admin_bp
 
-app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
+app = Flask(__name__, static_folder=os.path.join(current_dir, 'static'))
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'asdf#FGSgvasgf$5$WGT')
+app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET', 'your-secret-key-here')
 
 # 啟用 CORS
 CORS(app, origins="*")
@@ -26,7 +28,7 @@ app.register_blueprint(auth_bp, url_prefix='/api/auth')
 app.register_blueprint(admin_bp, url_prefix='/api/admin') # 註冊 admin_bp
 
 # 資料庫配置
-app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(os.path.dirname(__file__), 'database', 'app.db')}"
+app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(current_dir, 'database', 'app.db')}"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
 
@@ -36,9 +38,10 @@ with app.app_context():
     
     # 檢查是否已存在管理員用戶
     admin_user = User.query.filter_by(email='admin@morningai.com').first()
-    if not admin_user:
+    if not admin_user and not app.config.get("TESTING"):
         # 創建默認管理員用戶
         admin_user = User(
+            username='admin',
             email='admin@morningai.com',
             role='admin',
             is_email_verified=True
