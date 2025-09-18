@@ -5,51 +5,34 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { useAuth } from '../hooks/useAuth';
 
-const LoginPage = ({ onLogin }) => {
-  const [credentials, setCredentials] = useState({
-    username: '',
-    password: ''
-  })
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+const LoginPage = () => {
+  const { login } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [otp, setOtp] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [requires2FA, setRequires2FA] = useState(false);
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
+    e.preventDefault();
+    setLoading(true);
+    setError('');
 
-    try {
-      // 調用後端 API
-      const response = await fetch('https://morningai-mvp.onrender.com/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(credentials)
-      })
+    const result = await login(email, password, otp);
 
-      if (response.ok) {
-        const data = await response.json()
-        onLogin(data.user, data.token)
-      } else {
-        const errorData = await response.json()
-        setError(errorData.message || '登錄失敗，請檢查用戶名和密碼')
+    if (!result.success) {
+      setError(result.message || '登錄失敗，請檢查郵箱和密碼');
+      if (result.requires_2fa) {
+        setRequires2FA(true);
       }
-    } catch (error) {
-      console.error('登錄錯誤:', error)
-      setError('網絡錯誤，請稍後重試')
-    } finally {
-      setLoading(false)
+    } else {
+      // 登錄成功，useAuth hook 會處理導航
     }
-  }
-
-  const handleChange = (e) => {
-    setCredentials({
-      ...credentials,
-      [e.target.name]: e.target.value
-    })
-  }
+    setLoading(false);
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -81,16 +64,16 @@ const LoginPage = ({ onLogin }) => {
               )}
 
               <div className="space-y-2">
-                <Label htmlFor="username">用戶名</Label>
+                <Label htmlFor="email">郵箱</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
-                    id="username"
-                    name="username"
-                    type="text"
-                    placeholder="請輸入用戶名"
-                    value={credentials.username}
-                    onChange={handleChange}
+                    id="email"
+                    name="email"
+                    type="email"
+                    placeholder="請輸入郵箱"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                     className="pl-10"
                     required
                   />
@@ -106,13 +89,31 @@ const LoginPage = ({ onLogin }) => {
                     name="password"
                     type="password"
                     placeholder="請輸入密碼"
-                    value={credentials.password}
-                    onChange={handleChange}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
                     className="pl-10"
                     required
                   />
                 </div>
               </div>
+
+              {requires2FA && (
+                <div className="space-y-2">
+                  <Label htmlFor="otp">雙重認證碼 (OTP)</Label>
+                  <div className="relative">
+                    <Input
+                      id="otp"
+                      name="otp"
+                      type="text"
+                      placeholder="請輸入 OTP"
+                      value={otp}
+                      onChange={(e) => setOtp(e.target.value)}
+                      className="pl-3"
+                      required
+                    />
+                  </div>
+                </div>
+              )}
 
               <Button 
                 type="submit" 
@@ -134,7 +135,7 @@ const LoginPage = ({ onLogin }) => {
             <div className="mt-6 p-4 bg-blue-50 rounded-lg">
               <h4 className="text-sm font-medium text-blue-900 mb-2">開發環境測試帳號</h4>
               <div className="text-sm text-blue-700 space-y-1">
-                <p>用戶名: <code className="bg-blue-100 px-1 rounded">admin</code></p>
+                <p>郵箱: <code className="bg-blue-100 px-1 rounded">admin@morningai.com</code></p>
                 <p>密碼: <code className="bg-blue-100 px-1 rounded">admin123</code></p>
               </div>
             </div>

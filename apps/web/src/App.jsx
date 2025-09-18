@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from '@/components/ui/sonner';
 import Sidebar from '@/components/Sidebar';
@@ -6,55 +5,12 @@ import Dashboard from '@/components/Dashboard';
 import TwoFactorAuthSettings from '@/components/TwoFactorAuthSettings';
 
 import LoginPage from '@/components/LoginPage';
-import RegisterPage from '@/components/RegisterPage'; // Import RegisterPage
+import RegisterPage from '@/components/RegisterPage';
+import { AuthProvider, useAuth } from './hooks/useAuth';
 import './App.css';
 
-function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const token = localStorage.getItem('auth_token');
-        if (token) {
-          const response = await fetch('https://morningai-mvp.onrender.com/api/auth/verify', {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          });
-          
-          if (response.ok) {
-            const userData = await response.json();
-            setUser(userData.user);
-            setIsAuthenticated(true);
-          } else {
-            localStorage.removeItem('auth_token');
-          }
-        }
-      } catch (error) {
-        console.error('認證檢查失敗:', error);
-        localStorage.removeItem('auth_token');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkAuth();
-  }, []);
-
-  const handleLogin = (userData, token) => {
-    setUser(userData);
-    setIsAuthenticated(true);
-    localStorage.setItem('auth_token', token);
-  };
-
-  const handleLogout = () => {
-    setUser(null);
-    setIsAuthenticated(false);
-    localStorage.removeItem('auth_token');
-  };
+const PrivateRoute = ({ children }) => {
+  const { isAuthenticated, loading } = useAuth();
 
   if (loading) {
     return (
@@ -64,25 +20,31 @@ function App() {
     );
   }
 
+  return isAuthenticated ? children : <Navigate to="/login" />;
+};
+
+function App() {
   return (
     <Router>
-      <Routes>
-        <Route path="/login" element={<LoginPage onLogin={handleLogin} />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route 
-          path="/dashboard" 
-          element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />}
-        />
-        <Route 
-          path="/settings/2fa" 
-          element={isAuthenticated ? <TwoFactorAuthSettings /> : <Navigate to="/login" />}
-        />
-        <Route 
-          path="/" 
-          element={isAuthenticated ? <Navigate to="/dashboard" /> : <Navigate to="/login" />}
-        />
-      </Routes>
-      <Toaster />
+      <AuthProvider>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route 
+            path="/dashboard" 
+            element={<PrivateRoute><Sidebar /><Dashboard /></PrivateRoute>}
+          />
+          <Route 
+            path="/settings/2fa" 
+            element={<PrivateRoute><Sidebar /><TwoFactorAuthSettings /></PrivateRoute>}
+          />
+          <Route 
+            path="/" 
+            element={<Navigate to="/dashboard" />}
+          />
+        </Routes>
+        <Toaster />
+      </AuthProvider>
     </Router>
   );
 }
