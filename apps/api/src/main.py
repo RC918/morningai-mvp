@@ -33,7 +33,6 @@ app.config["JWT_SECRET_KEY"] = os.environ.get(
 )  # 替換為您的秘密金鑰
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
 
-
 jwt = JWTManager(app)
 
 db.init_app(app)
