@@ -113,8 +113,9 @@ const DecisionApproval = () => {
   ])
 
   const [selectedDecision, setSelectedDecision] = useState(null);
-  const [approvalComment, setApprovalComment] = useState('');
+  const [approvalComment, setApprovalComment] = useState(null);
   useEffect(() => {
+    setApprovalComment('');
     // 模擬自動倒計時
     const interval = setInterval(() => {
       setPendingDecisions(prev => 
@@ -447,6 +448,18 @@ const DecisionApproval = () => {
                       </div>
                     </DialogContent>
                   </Dialog>
+                  
+                  <Button 
+                    variant="destructive"
+                    onClick={() => handleReject(decision.id)}
+                  >
+                    <XCircle className="w-4 h-4 mr-2" />
+                    拒絕
+                  </Button>
+                  <Button onClick={() => handleApprove(decision.id)}>
+                    <CheckCircle className="w-4 h-4 mr-2" />
+                    批准
+                  </Button>
                 </div>
               </CardContent>
             </Card>
@@ -457,6 +470,6 @@ const DecisionApproval = () => {
   )
 }
 
-export default DecisionApproval;
+export default DecisionApproval
 
 
