@@ -4,7 +4,9 @@ on:
   push:
     tags:
       - 'v*.*.*'
-      workflow_dispatch:
+  workflow_dispatch:
+  pull_request:
+    branches: [ main, feature/jwt-blacklist ]
 
 jobs:
   release:
