@@ -112,7 +112,7 @@ const DecisionApproval = () => {
     }
   ])
   const [selectedDecision, setSelectedDecision] = useState(null);
-  const [approvalComment, setApprovalComment] = useState('');
+  const [approvalComment, setApprovalComment] = useState(null);
   useEffect(() => {    // 模擬自動倒計時
     const interval = setInterval(() => {
       setPendingDecisions(prev => 
