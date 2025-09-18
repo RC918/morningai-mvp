@@ -15,6 +15,8 @@ class User(db.Model):
     role = db.Column(db.String(50), nullable=False, default="user") # 'admin' or 'user'
     is_active = db.Column(db.Boolean, default=True)
     is_email_verified = db.Column(db.Boolean, default=False)
+    email_verified_at = db.Column(db.DateTime, nullable=True)
+
     # 2FA 相關欄位
     two_factor_secret = db.Column(db.String(32), nullable=True)
     two_factor_enabled = db.Column(db.Boolean, default=False)
@@ -79,6 +81,7 @@ class User(db.Model):
             'role': self.role,
             'is_active': self.is_active,
             'is_email_verified': self.is_email_verified,
+            'email_verified_at': self.email_verified_at.isoformat() if self.email_verified_at else None,
             'two_factor_enabled': self.two_factor_enabled,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None

@@ -15,6 +15,7 @@ from src.decorators import require_role
 from src.routes.auth import auth_bp
 from src.routes.admin import admin_bp
 from src.routes.two_factor import two_factor_bp
+from src.routes.email_verification import email_verification_bp
 
 app = Flask(__name__)
 CORS_ORIGINS = os.environ.get("CORS_ORIGINS", "https://morningai-mvp.vercel.app,https://morningai-an9nof.manus.space").split(",")
@@ -41,6 +42,7 @@ db.init_app(app)
 app.register_blueprint(auth_bp, url_prefix="/api")
 app.register_blueprint(admin_bp, url_prefix="/api/admin")
 app.register_blueprint(two_factor_bp, url_prefix="/api")
+app.register_blueprint(email_verification_bp, url_prefix="/api")
 
 @app.route("/")
 def home():
