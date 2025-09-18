@@ -111,9 +111,11 @@ const DecisionApproval = () => {
       auto_approve_in: 120 // 2分鐘後自動批准
     }
   ])
+
   const [selectedDecision, setSelectedDecision] = useState(null);
-  const [approvalComment, setApprovalComment] = useState('');
-  useEffect(() => {    // 模擬自動倒計時
+  const [approvalComment, setApprovalComment] = useState(\'\'); 
+  useEffect(() => {
+    // 模擬自動倒計時
     const interval = setInterval(() => {
       setPendingDecisions(prev => 
         prev.map(decision => ({
@@ -153,9 +155,7 @@ const DecisionApproval = () => {
   }
 
   const handleReject = async (decisionId) => {
-   if (!approvalComment.trim()) {
-
-
+    if (!approvalComment.trim()) {
       toast({
         title: "請提供拒絕理由",
         description: "拒絕決策時必須說明原因",
