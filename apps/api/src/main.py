@@ -31,7 +31,6 @@ jwt = JWTManager(app)
 
 db.init_app(app)
 
-
 # 註冊藍圖
 app.register_blueprint(auth_bp, url_prefix="/api")
 app.register_blueprint(admin_bp, url_prefix="/api/admin")
@@ -72,5 +71,3 @@ with app.app_context():
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=os.environ.get("PORT", 5000))
-
-

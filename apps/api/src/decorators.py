@@ -60,7 +60,7 @@ def require_role(required_role):
                 return jsonify({'error': 'Token has expired'}), 401
             except jwt.InvalidTokenError:
                 return jsonify({'error': 'Invalid token'}), 401
-            except Exception: # as e
+            except Exception:  # as e
                 return jsonify({'error': 'Token validation failed'}), 401
         
         return decorated_function

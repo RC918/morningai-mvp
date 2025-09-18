@@ -28,7 +28,6 @@ def get_all_users(current_user):
     except Exception as e:
         return jsonify({"error": "Failed to get users", "details": str(e)}), 500
 
-
 @admin_bp.route("/users/<int:user_id>", methods=["GET"])
 @token_required
 @admin_required
@@ -53,7 +52,6 @@ def get_user_by_id(current_user, user_id):
 
     except Exception as e:
         return jsonify({"error": "Failed to get user", "details": str(e)}), 500
-
 
 @admin_bp.route("/users/<int:user_id>/role", methods=["PUT"])
 @token_required
@@ -99,7 +97,6 @@ def update_user_role(current_user, user_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": "Failed to update user role", "details": str(e)}), 500
-
 
 @admin_bp.route("/users/<int:user_id>/status", methods=["PUT"])
 @token_required
