@@ -13,7 +13,7 @@ class User(db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
-    role = db.Column(db.String(50), nullable=False, default="user")  # 'admin' or 'user'
+    role = db.Column(db.String(50), nullable=False, default="user")
     is_active = db.Column(db.Boolean, default=True)
     is_email_verified = db.Column(db.Boolean, default=False)  # 2FA 相關欄位
     two_factor_secret = db.Column(db.String(32), nullable=True)
