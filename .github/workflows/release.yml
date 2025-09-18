@@ -47,7 +47,9 @@ jobs:
           generate_release_notes: false # We generate our own
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+        permissions:
+          contents: write
+      
       # CI Checks from env-check.yml
       - uses: actions/setup-node@v4
         with:
