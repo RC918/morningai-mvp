@@ -5,6 +5,8 @@ import sys
 # 將 apps/api 的父目錄添加到 sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
+print(f"DEBUG: sys.path at startup: {sys.path}") # 添加這行來打印 sys.path
+
 from flask import Flask, send_from_directory
 from flask_cors import CORS
 from src.models.user import db, User
