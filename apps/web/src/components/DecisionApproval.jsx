@@ -112,9 +112,7 @@ const DecisionApproval = () => {
     }
   ])
 
-  const [selectedDecision, setSelectedDecision] = useState(null)
-  const [approvalComment, setApprovalComment] = useState('') // eslint-disable-line no-unused-vars
-
+  const [selectedDecision, setSelectedDecision] = useState(null)  const [approvalComment, setApprovalComment] = useState(\'\')
   useEffect(() => {
     // 模擬自動倒計時
     const interval = setInterval(() => {
