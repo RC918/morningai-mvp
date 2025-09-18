@@ -8,9 +8,12 @@ from flask_cors import CORS
 from src.models.user import db, User
 from src.routes.user import user_bp
 from src.routes.auth import auth_bp
+from flask_jwt_extended import JWTManager
 
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'asdf#FGSgvasgf$5$WGT')
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "asdf#FGSgvasgf$5$WGT")
+jwt = JWTManager(app)
+
 
 # 啟用 CORS
 CORS(app, origins="*")
