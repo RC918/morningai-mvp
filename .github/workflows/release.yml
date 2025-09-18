@@ -16,6 +16,9 @@ jobs:
         app:
           - { name: web, path: apps/web }
           - { name: api, path: apps/api }
+    permissions:
+      contents: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -47,8 +50,6 @@ jobs:
           generate_release_notes: false # We generate our own
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        permissions:
-          contents: write
       
       # CI Checks from env-check.yml
       - uses: actions/setup-node@v4
