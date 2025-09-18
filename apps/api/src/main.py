@@ -1,5 +1,10 @@
 import os
 import sys
+
+# 確保 Python 能夠找到 src 包
+# 將 apps/api 的父目錄添加到 sys.path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 from flask import Flask, send_from_directory
 from flask_cors import CORS
 from src.models.user import db, User
