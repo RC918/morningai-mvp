@@ -142,6 +142,34 @@ jobs:
           ENV_MISSING=$(grep 'Missing environment variables:' env_check_output.txt | sed 's/Missing environment variables: //')
           echo "env_missing=$ENV_MISSING" >> $GITHUB_OUTPUT
 
+      - name: API Import Smoke Test
+        id: api-import-smoke
+        if: ${{ matrix.app.name == 'api' }}
+        working-directory: ${{ matrix.app.path }}
+        run: |
+          python -c "
+          import importlib
+          import sys
+          modules = [
+            'src.main',
+            'src.routes.two_factor',
+            'src.routes.auth',
+            'src.routes.admin',
+            'src.routes.audit_log',
+            'src.routes.jwt_blacklist',
+            'src.routes.user',
+            'src.decorators'
+          ]
+          for module in modules:
+            try:
+              importlib.import_module(module)
+              print(f'✓ {module}')
+            except Exception as e:
+              print(f'✗ {module}: {e}')
+              sys.exit(1)
+          print('All imports successful!')
+          "
+
       - name: API Lint Check
         id: api-lint-check
         if: ${{ matrix.app.name == 'api' }}
