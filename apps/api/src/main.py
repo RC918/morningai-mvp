@@ -2,19 +2,27 @@ import os
 
 from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
-from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity
+
+# 導入 JWT 相關庫
+import jwt
+from datetime import datetime, timedelta
+
 from flask_cors import CORS
-from datetime import timedelta
 
 # 導入資料庫和模型
 from src.database import db
 from src.models.user import User
+from src.models.jwt_blacklist import JWTBlacklist
 from src.decorators import require_role
+
+# 導入 APScheduler
+from flask_apscheduler import APScheduler
 
 # 導入路由
 from src.routes.auth import auth_bp
 from src.routes.admin import admin_bp
 from src.routes.two_factor import two_factor_bp
+from src.routes.jwt_blacklist import jwt_blacklist_bp
 
 app = Flask(__name__)
 CORS(app)
@@ -25,16 +33,29 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # 配置 JWT
 app.config["JWT_SECRET_KEY"] = os.environ.get("JWT_SECRET_KEY", "super-secret")  # 替換為您的秘密金鑰
-app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
-
-jwt = JWTManager(app)
+app.config["JWT_ACCESS_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
 
 db.init_app(app)
+
+# 配置和初始化 APScheduler
+app.config["SCHEDULER_API_ENABLED"] = True
+scheduler = APScheduler()
+scheduler.init_app(app)
+scheduler.start()
+
+# 添加定時任務：每小時清理一次過期的 JWT 黑名單
+@scheduler.task("interval", id="cleanup_jwt_blacklist", hours=1, misfire_grace_time=900)
+def cleanup_jwt_blacklist_job():
+    with app.app_context():
+        from src.models.jwt_blacklist import JWTBlacklist
+        cleaned_count = JWTBlacklist.cleanup_expired_tokens()
+        print(f"清理了 {cleaned_count} 個過期的 JWT 黑名單 token")
 
 # 註冊藍圖
 app.register_blueprint(auth_bp, url_prefix="/api")
 app.register_blueprint(admin_bp, url_prefix="/api/admin")
 app.register_blueprint(two_factor_bp, url_prefix="/api")
+app.register_blueprint(jwt_blacklist_bp, url_prefix="/api")
 
 @app.route("/")
 def home():
