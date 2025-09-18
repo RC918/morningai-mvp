@@ -57,6 +57,12 @@ const Sidebar = ({ user, onLogout }) => {
       icon: Settings,
       label: '系統設置',
       description: '配置管理'
+    },
+    {
+      path: '/settings/2fa',
+      icon: CheckCircle,
+      label: '雙重認證',
+      description: '管理 2FA 設定'
     }
   ]
 

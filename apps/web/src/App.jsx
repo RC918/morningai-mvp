@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Toaster } from '@/components/ui/sonner';
 import Sidebar from '@/components/Sidebar';
 import Dashboard from '@/components/Dashboard';
+import TwoFactorAuthSettings from '@/components/TwoFactorAuthSettings';
 
 import LoginPage from '@/components/LoginPage';
 import RegisterPage from '@/components/RegisterPage'; // Import RegisterPage
@@ -71,6 +72,10 @@ function App() {
         <Route 
           path="/dashboard" 
           element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />}
+        />
+        <Route 
+          path="/settings/2fa" 
+          element={isAuthenticated ? <TwoFactorAuthSettings /> : <Navigate to="/login" />}
         />
         <Route 
           path="/" 
