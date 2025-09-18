@@ -113,8 +113,7 @@ const DecisionApproval = () => {
   ])
 
   const [selectedDecision, setSelectedDecision] = useState(null);
-  const [approvalComment, setApprovalComment] = useState('');
-  
+  const [approvalComment, setApprovalComment] = useState(\'\'); 
   useEffect(() => {
     // 模擬自動倒計時
     const interval = setInterval(() => {
@@ -156,7 +155,7 @@ const DecisionApproval = () => {
   }
 
   const handleReject = async (decisionId) => {
-    if (!approvalComment.trim()) {
+    if (!_approvalComment.trim()) {
       toast({
         title: "請提供拒絕理由",
         description: "拒絕決策時必須說明原因",
@@ -425,7 +424,7 @@ const DecisionApproval = () => {
                           <Textarea
                             id="approvalComment"
                             placeholder="請輸入審批意見或備註..."
-                            value={approvalComment}
+                            value={_approvalComment}
                             onChange={(e) => setApprovalComment(e.target.value)}
                             className="mt-2"
                           />
