@@ -1,12 +1,8 @@
 from datetime import datetime
 import pyotp
-
-
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from src.database import db
-
-
 class User(db.Model):
     __table_args__ = {"extend_existing": True}
     id = db.Column(db.Integer, primary_key=True)
@@ -90,5 +86,3 @@ class User(db.Model):
             data["password_hash"] = self.password_hash
             data["two_factor_secret"] = self.two_factor_secret
         return data
-
-
