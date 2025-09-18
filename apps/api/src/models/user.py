@@ -76,5 +76,3 @@ class User(db.Model):
         return data
 
 
-
-
