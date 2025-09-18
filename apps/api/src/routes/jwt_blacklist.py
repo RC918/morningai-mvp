@@ -161,7 +161,6 @@ def revoke_token(current_user):
         return jsonify({'message': 'Token 撤銷失敗'}), 500
 
 @jwt_blacklist_bp.route('/admin/blacklist', methods=['GET'])
-@token_required
 @require_role('admin')
 def get_blacklist(current_user):
     """獲取黑名單列表（僅管理員）"""
@@ -194,7 +193,6 @@ def get_blacklist(current_user):
         return jsonify({'message': '獲取黑名單失敗'}), 500
 
 @jwt_blacklist_bp.route('/admin/blacklist/cleanup', methods=['POST'])
-@token_required
 @require_role('admin')
 def cleanup_blacklist(current_user):
     """清理過期的黑名單 token（僅管理員）"""

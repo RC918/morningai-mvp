@@ -47,6 +47,8 @@ def require_role(required_role):
                 # 獲取用戶角色
                 user_role = payload.get('role')
                 user_id = payload.get('sub') or payload.get('user_id')
+                if isinstance(user_id, str):
+                    user_id = int(user_id)  # 轉換字符串為整數
                 
                 if not user_role or not user_id:
                     return jsonify({'error': 'Invalid token payload'}), 401
@@ -67,7 +69,8 @@ def require_role(required_role):
             except jwt.InvalidTokenError:
                 return jsonify({'error': 'Invalid token'}), 401
             except Exception as e:
-                return jsonify({'error': 'Token validation failed'}), 401
+                current_app.logger.error(f"Role validation error: {str(e)}")
+                return jsonify({'error': f'Token validation failed: {str(e)}'}), 401
         
         return decorated_function
     return decorator
@@ -97,6 +100,8 @@ def token_required(f):
             )
 
             user_id = payload.get("sub") or payload.get("user_id")
+            if isinstance(user_id, str):
+                user_id = int(user_id)  # 轉換字符串為整數
             jti = payload.get("jti")
             
             if not user_id:
@@ -120,6 +125,7 @@ def token_required(f):
         except jwt.InvalidTokenError:
             return jsonify({"error": "Invalid token"}), 401
         except Exception as e:
+            current_app.logger.error(f"Token validation error: {str(e)}")
             return jsonify({"error": f"Token validation failed: {str(e)}"}), 401
 
     return decorated_function

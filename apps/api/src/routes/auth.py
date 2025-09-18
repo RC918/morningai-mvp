@@ -8,7 +8,7 @@ from functools import wraps
 
 auth_bp = Blueprint("auth", __name__)
 # JWT 配置
-JWT_SECRET = os.environ.get("JWT_SECRET", "your-secret-key-here")
+JWT_SECRET = os.environ.get("JWT_SECRET_KEY", "super-secret")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = 24
 
@@ -112,7 +112,7 @@ def login():
         
         payload = {
             "user_id": user.id,
-            "sub": user.id,  # 標準的 subject 聲明
+            "sub": str(user.id),  # 標準的 subject 聲明（必須是字符串）
             "username": user.username,
             "role": user.role,
             "jti": jti,  # JWT ID，用於黑名單管理

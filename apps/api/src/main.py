@@ -15,6 +15,9 @@ from src.models.user import User
 from src.models.jwt_blacklist import JWTBlacklist
 from src.decorators import require_role
 
+# 導入 APScheduler
+from flask_apscheduler import APScheduler
+
 # 導入路由
 from src.routes.auth import auth_bp
 from src.routes.admin import admin_bp
