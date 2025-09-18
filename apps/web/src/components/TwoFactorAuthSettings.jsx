@@ -188,5 +188,3 @@ const TwoFactorAuthSettings = () => {
 };
 
 export default TwoFactorAuthSettings;
-
-
