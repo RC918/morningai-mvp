@@ -1,6 +1,6 @@
 cd /app/src
-export PYTHONPATH=$PYTHONPATH:/app/src
+export PYTHONPATH=$PYTHONPATH:/app
 rm -f database/app.db
 mkdir -p database
-python -c "from database import db, Base, engine; Base.metadata.create_all(engine)"
+python -c "from src.database import Base, engine; Base.metadata.create_all(engine)"
 
