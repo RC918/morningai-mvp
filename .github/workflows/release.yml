@@ -59,7 +59,7 @@ jobs:
       - name: Install Node.js dependencies (web)
         if: ${{ matrix.app.name == 'web' }}
         working-directory: ${{ matrix.app.path }}
-        run: npm ci
+        run: npm install
 
       - name: Run Env Check for web
         id: env-check-web
