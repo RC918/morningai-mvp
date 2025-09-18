@@ -1,15 +1,15 @@
 import os
 
-from flask import Flask, jsonify, request
-from flask_sqlalchemy import SQLAlchemy
-from flask_jwt_extended import JWTManager, jwt_required, create_access_token, get_jwt_identity
+from flask import Flask, jsonify
+# from flask_sqlalchemy import SQLAlchemy
+from flask_jwt_extended import JWTManager
 from flask_cors import CORS
 from datetime import timedelta
 
 # 導入資料庫和模型
 from src.database import db
 from src.models.user import User
-from src.decorators import require_role
+# from src.decorators import require_role
 
 # 導入路由
 from src.routes.auth import auth_bp
@@ -30,6 +30,7 @@ app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
 jwt = JWTManager(app)
 
 db.init_app(app)
+
 
 # 註冊藍圖
 app.register_blueprint(auth_bp, url_prefix="/api")

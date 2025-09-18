@@ -1,7 +1,7 @@
 from functools import wraps
 from flask import request, jsonify, current_app
 import jwt
-from src.models.user import User
+# from src.models.user import User
 
 def require_role(required_role):
     """
@@ -32,8 +32,8 @@ def require_role(required_role):
             try:
                 # 解碼 JWT
                 payload = jwt.decode(
-                    token, 
-                    current_app.config['JWT_SECRET_KEY'], 
+                    token,
+                    current_app.config["JWT_SECRET_KEY"],
                     algorithms=['HS256']
                 )
                 
@@ -60,7 +60,7 @@ def require_role(required_role):
                 return jsonify({'error': 'Token has expired'}), 401
             except jwt.InvalidTokenError:
                 return jsonify({'error': 'Invalid token'}), 401
-            except Exception as e:
+            except Exception: # as e
                 return jsonify({'error': 'Token validation failed'}), 401
         
         return decorated_function
