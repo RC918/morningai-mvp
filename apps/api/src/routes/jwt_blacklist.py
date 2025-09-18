@@ -92,7 +92,7 @@ def logout_all(current_user):
                     JWTBlacklist.add_to_blacklist(
                         jti=jti, user_id=current_user.id, expires_at=expires_at, reason="logout_all"
                     )
-            except:
+            except Exception:  # noqa: E722
                 pass
 
         return jsonify({"message": "已登出所有設備"}), 200
