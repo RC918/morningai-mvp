@@ -48,7 +48,13 @@ with app.app_context():
     # 檢查並創建默認管理員用戶
     admin_user = User.query.filter_by(email="admin@morningai.com").first()
     if not admin_user:
-        admin_user = User(email="admin@morningai.com", role="admin", is_email_verified=True)
+        admin_user = User(
+            username="admin", 
+            email="admin@morningai.com", 
+            role="admin", 
+            is_active=True,
+            is_email_verified=True
+        )
         admin_user.set_password("admin123")
         db.session.add(admin_user)
         db.session.commit()

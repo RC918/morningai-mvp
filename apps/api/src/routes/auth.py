@@ -106,17 +106,23 @@ def login():
     try:
         data = request.get_json()
         
+        # 支持 email 或 username 登入
+        email = data.get("email")
         username = data.get("username")
         password = data.get("password")
         
-        if not username or not password:
-            return jsonify({"message": "用戶名和密碼不能為空"}), 400
+        if not (email or username) or not password:
+            return jsonify({"message": "郵箱/用戶名和密碼不能為空"}), 400
         
-        # 查找用戶
-        user = User.query.filter_by(username=username).first()
+        # 查找用戶 - 優先使用 email，其次使用 username
+        user = None
+        if email:
+            user = User.query.filter_by(email=email).first()
+        elif username:
+            user = User.query.filter_by(username=username).first()
         
         if not user or not user.check_password(password):
-            return jsonify({"message": "用戶名或密碼錯誤"}), 401
+            return jsonify({"message": "郵箱/用戶名或密碼錯誤"}), 401
         
         if not user.is_active:
             return jsonify({"message": "帳戶已被禁用"}), 401
