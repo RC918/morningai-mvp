@@ -56,7 +56,7 @@ with app.app_context():
     # 檢查並創建默認管理員用戶
     admin_user = User.query.filter_by(email="admin@morningai.com").first()
     if not admin_user:
-        # 也檢查是否已經有 username='admin' 的用戶
+        # 也檢查是否已經有 username=\'admin\' 的用戶
         existing_admin = User.query.filter_by(username="admin").first()
         if not existing_admin:
             admin_user = User(
@@ -71,9 +71,9 @@ with app.app_context():
             db.session.commit()
             print("Default admin user created: admin@morningai.com/admin123")
         else:
-            print("Admin user already exists with username 'admin'")
+            print("Admin user already exists with username \'admin\'")
     else:
-        print("Admin user already exists with email 'admin@morningai.com'")
+        print("Admin user already exists with email \'admin@morningai.com\'")
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=os.environ.get("PORT", 5000))
