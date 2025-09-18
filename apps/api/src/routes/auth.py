@@ -149,8 +149,7 @@ def login():
             "user_id": user.id,
             "username": user.username,
             "role": user.role,
-            "exp": datetime.datetime.utcnow()
-            + datetime.timedelta(hours=JWT_EXPIRATION_HOURS),
+            "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=JWT_EXPIRATION_HOURS),
         }
 
         token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
