@@ -86,4 +86,3 @@ class User(db.Model):
             data["password_hash"] = self.password_hash
             data["two_factor_secret"] = self.two_factor_secret
         return data
-
