@@ -1,10 +1,13 @@
-from src.database import db
-from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import pyotp
 import qrcode
 import io
 import base64
+
+from werkzeug.security import check_password_hash, generate_password_hash
+
+from src.database import db
+
 
 class User(db.Model):
     __table_args__ = {"extend_existing": True}
@@ -19,10 +22,12 @@ class User(db.Model):
     two_factor_secret = db.Column(db.String(32), nullable=True)
     two_factor_enabled = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
 
     def __repr__(self):
-        return f'<User {self.username}>'
+        return f"<User {self.username}>"
 
     def set_password(self, password):
         """設置密碼哈希"""
@@ -34,7 +39,7 @@ class User(db.Model):
 
     def is_admin(self):
         """檢查是否為管理員"""
-        return self.role == 'admin'
+        return self.role == "admin"
 
     def generate_2fa_secret(self):
         """生成 2FA 密鑰"""
@@ -81,13 +86,10 @@ class User(db.Model):
             'is_email_verified': self.is_email_verified,
             'two_factor_enabled': self.two_factor_enabled,
             'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
-        
+
         if include_sensitive:
-            data['password_hash'] = self.password_hash
-            data['two_factor_secret'] = self.two_factor_secret
-            
+            data["password_hash"] = self.password_hash
+            data["two_factor_secret"] = self.two_factor_secret
         return data
-
-

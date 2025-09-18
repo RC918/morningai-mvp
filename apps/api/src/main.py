@@ -1,15 +1,16 @@
 import os
+from datetime import timedelta
 
 from flask import Flask, jsonify
+from flask_cors import CORS
+
 # from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
-from flask_cors import CORS
-from datetime import timedelta
 
 # 導入資料庫和模型
 from src.database import db
 from src.models.user import User
-# from src.decorators import require_role
+
 
 # 導入路由
 from src.routes.auth import auth_bp
@@ -19,12 +20,17 @@ from src.routes.two_factor import two_factor_bp
 app = Flask(__name__)
 CORS(app)
 
+
 # 配置資料庫
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///app.db")
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
+    "DATABASE_URL", "sqlite:///app.db"
+)
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # 配置 JWT
-app.config["JWT_SECRET_KEY"] = os.environ.get("JWT_SECRET_KEY", "super-secret")  # 替換為您的秘密金鑰
+app.config["JWT_SECRET_KEY"] = os.environ.get(
+    "JWT_SECRET_KEY", "super-secret"
+)  # 替換為您的秘密金鑰
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
 
 jwt = JWTManager(app)
@@ -35,6 +41,7 @@ db.init_app(app)
 app.register_blueprint(auth_bp, url_prefix="/api")
 app.register_blueprint(admin_bp, url_prefix="/api/admin")
 app.register_blueprint(two_factor_bp, url_prefix="/api")
+
 
 @app.route("/")
 def home():
@@ -68,8 +75,7 @@ with app.app_context():
             print("Default admin user created: admin@morningai.com/admin123")
         else:
             print("Admin user already exists with username 'admin'")
-    else:
-        print("Admin user already exists with email 'admin@morningai.com'")
 
 if __name__ == "__main__":
     app.run(debug=True, host="0.0.0.0", port=os.environ.get("PORT", 5000))
+
