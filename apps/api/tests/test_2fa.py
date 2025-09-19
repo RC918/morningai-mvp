@@ -41,7 +41,7 @@ class TestTwoFactorSetup:
         
         # Generate QR code
         qr = qrcode.QRCode(version=1, box_size=10, border=5)
-        qr.add_data(provisioning_uri)
+        qr.add_data(provisioning_uri, optimize=0)
         qr.make(fit=True)
         
         img = qr.make_image(fill_color="black", back_color="white")
@@ -52,7 +52,7 @@ class TestTwoFactorSetup:
         img_bytes = img_buffer.getvalue()
         
         assert len(img_bytes) > 0
-        assert provisioning_uri in qr.data_list[0].data
+        assert provisioning_uri in str(qr.data_list[0].data, 'utf-8')
         
     def test_verify_2fa_token_valid(self):
         """Test verification of valid 2FA token."""
@@ -86,7 +86,8 @@ class TestTwoFactorSetup:
         totp = pyotp.TOTP(secret)
         
         # Generate token for a past time (more than valid window)
-        past_time = totp.timecode(for_time=totp.now() - 300)  # 5 minutes ago
+        import datetime
+        past_time = totp.timecode(for_time=datetime.datetime.now() - datetime.timedelta(minutes=5))
         past_token = totp.generate_otp(past_time)
         
         # Verify token with narrow window
