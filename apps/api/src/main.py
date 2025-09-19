@@ -81,7 +81,7 @@ def home():
 
 @app.route("/health")
 def health_check():
-return jsonify(ok=True, message="Service is healthy")
+    return jsonify(ok=True, message="Service is healthy")
 
 
 # 添加路由列印功能（用於調試）
