@@ -65,7 +65,16 @@ def home():
 
 @app.route("/health")
 def health_check():
-    return jsonify(status="ok", message="API is healthy")
+    import subprocess
+    try:
+        # 獲取 git commit hash
+        git_sha = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], 
+                                        cwd='/opt/render/project/src', 
+                                        stderr=subprocess.DEVNULL).decode().strip()
+    except:
+        git_sha = "unknown"
+    
+    return jsonify(ok=True, version=git_sha)
 
 
 # 添加路由列印功能（用於調試）
