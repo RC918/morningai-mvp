@@ -129,7 +129,7 @@ const DecisionApproval = () => {
     return () => clearInterval(interval)
   }, [])
 
-  const handleApprove = async (decisionId, comment = '') => {
+    const handleApprove = async (decisionId, _comment = '') => {
     try {
       // 模擬API調用
       await new Promise(resolve => setTimeout(resolve, 1000))

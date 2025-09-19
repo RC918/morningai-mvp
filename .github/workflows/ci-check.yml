@@ -1,0 +1,46 @@
+name: CI Check
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ feature/* ]
+jobs:
+  env-check:
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with: { python-version: '3.11' }
+
+      - name: Install API deps
+        working-directory: apps/api
+        run: pip install -r requirements.txt
+
+      - name: Pytest (health + blacklist)
+        working-directory: apps/api
+        run: pytest -q -k "health or blacklist" --maxfail=1 --disable-warnings | tee pytest.txt
+
+      - name: Health check (Render staging)
+        env: { API_URL: ${{ vars.API_URL }} }
+        run: |
+          curl -sS -i "${API_URL}/health" | tee health.txt
+          grep " 200 " -q health.txt
+
+      - name: Web Lint (ESLint)
+        working-directory: apps/web
+        run: |
+          npm ci
+          npm run lint -- --max-warnings=0 | tee eslint.txt
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: evidence-ci
+          path: |
+            pytest.txt
+            health.txt
+            apps/web/eslint.txt
+

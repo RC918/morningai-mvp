@@ -16,11 +16,30 @@ const TwoFactorAuthSettings = () => {
 
   const API_URL = import.meta.env.VITE_API_URL || 'https://morningai-mvp.onrender.com/api';
 
+    const fetchTwoFactorStatus = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_URL}/auth/2fa/status`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setTwoFactorEnabled(data.two_factor_enabled);
+      } else {
+        setMessage(data.message || '獲取 2FA 狀態失敗');
+      }
+    } catch (error) {
+      console.error('Error fetching 2FA status:', error);
+      setMessage('獲取 2FA 狀態時發生錯誤');
+    }
+  }, [token, API_URL]);
+
   useEffect(() => {
     if (token) {
       fetchTwoFactorStatus();
     }
-  }, [token]);
+  }, [token, fetchTwoFactorStatus]);
 
   const fetchTwoFactorStatus = async () => {
     try {
