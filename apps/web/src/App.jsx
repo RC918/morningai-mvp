@@ -24,7 +24,7 @@ const PrivateRoute = ({ children }) => {
     );
   }
 
-  return isAuthenticated ? children : <Navigate to="/login" />;
+  return isAuthenticated ? children : <Navigate to="/login" replace />;
 };
 
 function App() {
@@ -49,7 +49,7 @@ function App() {
             />
             <Route 
               path="/" 
-              element={<Navigate to="/dashboard" />}
+              element={<Navigate to="/login" replace />}
             />
           </Routes>
           <Toaster />
