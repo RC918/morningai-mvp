@@ -12,5 +12,5 @@ RUN chmod +x /app/pre_deploy_script.sh || true
 
 ENV PYTHONPATH=/app
 
-CMD ["gunicorn", "-w", "2", "-k", "gthread", "-b", "0.0.0.0:$PORT", "src.main:app"]
+CMD sh -c 'gunicorn -w 2 -k gthread -b 0.0.0.0:$PORT src.main:app'
 
