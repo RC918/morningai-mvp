@@ -1,6 +1,6 @@
-# apps/api/src/audit_log.py
+import json
 from functools import wraps
-from flask import request, g
+from flask import request, g, current_app
 from .models.audit_log import AuditLog, AuditActions
 
 def audit_log(action: str, resource_type: str = None):
@@ -10,11 +10,17 @@ def audit_log(action: str, resource_type: str = None):
             # 執行原始路由函式
             response = f(*args, **kwargs)
 
-            # 從回應中獲取狀態碼和資料
-            status_code = response.status_code
+            # 將 Flask view function 的多種回傳格式標準化為 Response 物件
+            if isinstance(response, tuple):
+                response_obj = current_app.make_response(response)
+            else:
+                response_obj = current_app.make_response(response)
+
+            # 從標準化的 Response 物件中獲取狀態碼和資料
+            status_code = response_obj.status_code
             try:
-                response_data = response.get_json()
-            except Exception:
+                response_data = json.loads(response_obj.get_data(as_text=True))
+            except (json.JSONDecodeError, TypeError):
                 response_data = None
 
             # 判斷操作是否成功
@@ -55,9 +61,9 @@ def audit_log(action: str, resource_type: str = None):
                 status=status,
             )
 
+            # 回傳原始的 response，讓 Flask 繼續處理
             return response
 
         return decorated_function
 
     return decorator
-

@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://morningai-mvp.onrender.com/api';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://morningai-mvp.onrender.com';
 
 class ApiClient {
   constructor() {
@@ -48,42 +48,42 @@ class ApiClient {
 
   // Auth endpoints
   async login(email, password, otp = null) {
-    return this.request('/login', {
+    return this.request('/api/login', {
       method: 'POST',
       body: { email, password, otp },
     });
   }
 
   async register(username, email, password) {
-    return this.request('/register', {
+    return this.request('/api/register', {
       method: 'POST',
       body: { username, email, password },
     });
   }
 
   async verifyToken() {
-    return this.request('/verify');
+    return this.request('/api/verify');
   }
 
   async logout() {
-    return this.request('/auth/logout', {
+    return this.request('/api/logout', {
       method: 'POST',
     });
   }
 
   async logoutAll() {
-    return this.request('/auth/logout-all', {
+    return this.request('/api/logout-all', {
       method: 'POST',
     });
   }
 
   // Profile endpoints
   async getProfile() {
-    return this.request('/profile');
+    return this.request('/api/profile');
   }
 
   async updateProfile(data) {
-    return this.request('/profile', {
+    return this.request('/api/profile', {
       method: 'PUT',
       body: data,
     });
@@ -91,65 +91,65 @@ class ApiClient {
 
   // 2FA endpoints
   async setup2FA() {
-    return this.request('/auth/2fa/setup', {
+    return this.request('/api/2fa/setup', {
       method: 'POST',
     });
   }
 
   async enable2FA(otp) {
-    return this.request('/auth/2fa/enable', {
+    return this.request('/api/2fa/enable', {
       method: 'POST',
       body: { otp },
     });
   }
 
   async disable2FA(otp) {
-    return this.request('/auth/2fa/disable', {
+    return this.request('/api/2fa/disable', {
       method: 'POST',
       body: { otp },
     });
   }
 
   async get2FAStatus() {
-    return this.request('/auth/2fa/status');
+    return this.request('/api/2fa/status');
   }
 
   // Email verification endpoints
   async sendVerificationEmail() {
-    return this.request('/auth/email/send-verification', {
+    return this.request('/api/email/send-verification', {
       method: 'POST',
     });
   }
 
   // Admin endpoints
   async getAllUsers() {
-    return this.request('/admin/users');
+    return this.request('/api/admin/users');
   }
 
   async getUserById(userId) {
-    return this.request(`/admin/users/${userId}`);
+    return this.request(`/api/admin/users/${userId}`);
   }
 
   async updateUserRole(userId, role) {
-    return this.request(`/admin/users/${userId}/role`, {
+    return this.request(`/api/admin/users/${userId}/role`, {
       method: 'PUT',
       body: { role },
     });
   }
 
   async updateUserStatus(userId, is_active) {
-    return this.request(`/admin/users/${userId}/status`, {
+    return this.request(`/api/admin/users/${userId}/status`, {
       method: 'PUT',
       body: { is_active },
     });
   }
 
   async getBlacklist() {
-    return this.request('/admin/blacklist');
+    return this.request('/api/admin/blacklist');
   }
 
   async cleanupBlacklist() {
-    return this.request('/admin/blacklist/cleanup', {
+    return this.request('/api/admin/blacklist/cleanup', {
       method: 'POST',
     });
   }

@@ -22,7 +22,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       try {
-        const response = await fetch(`${API_URL}/auth/verify`, {
+        const response = await fetch(`${API_URL}/verify`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -55,7 +55,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password, otp = null) => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_URL}/auth/login`, {
+      const response = await fetch(`${API_URL}/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
