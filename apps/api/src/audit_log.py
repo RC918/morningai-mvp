@@ -1,4 +1,4 @@
-_# apps/api/src/audit_log.py_
+# apps/api/src/audit_log.py
 from functools import wraps
 from flask import request, g
 from .models.audit_log import AuditLog, AuditActions
