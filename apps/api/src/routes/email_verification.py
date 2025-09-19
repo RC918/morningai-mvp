@@ -1,4 +1,4 @@
-_# apps/api/src/routes/email_verification.py_
+# apps/api/src/routes/email_verification.py
 from flask import Blueprint, request, jsonify, current_app
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadTimeSignature
 from src.models.user import User, db
