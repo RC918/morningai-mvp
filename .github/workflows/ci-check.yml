@@ -87,6 +87,19 @@ jobs:
         run: |
           npm run typecheck -- --skipLibCheck | tee ../../artifacts/${{ matrix.app.name }}_typecheck.txt
 
+      - name: Alembic Migration Check
+        if: ${{ matrix.app.name == 'api' }}
+        working-directory: ${{ matrix.app.path }}
+        run: |
+          echo "=== Alembic Revision History ===" | tee ../../artifacts/alembic_history.txt
+          alembic history | tail -n 20 | tee -a ../../artifacts/alembic_history.txt || echo "No migration history found" >> ../../artifacts/alembic_history.txt
+          
+          echo "=== Alembic Current Status ===" | tee ../../artifacts/alembic_current.txt
+          alembic current -v 2>&1 | tee -a ../../artifacts/alembic_current.txt || echo "Alembic not initialized or no database connection" >> ../../artifacts/alembic_current.txt
+          
+          echo "=== Migration Dry-Run (SQL Generation) ===" | tee ../../artifacts/migration_dry_run.sql
+          alembic upgrade head --sql 2>&1 | tee -a ../../artifacts/migration_dry_run.sql || echo "-- No migrations to apply or database connection issue" >> ../../artifacts/migration_dry_run.sql
+
       - name: Unit Tests
         working-directory: ${{ matrix.app.path }}
         run: |
