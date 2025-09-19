@@ -70,34 +70,12 @@ def logout(current_user):
 def logout_all(current_user):
     """登出所有設備，撤銷用戶的所有 token"""
     try:
-        # 在實際應用中，這裡應該實現撤銷用戶所有 token 的邏輯
-        # 一種方法是在用戶表中添加 token_version 字段
-        # 另一種方法是維護一個活躍 token 列表
-
-        # 目前的實現：將當前 token 加入黑名單
-        auth_header = request.headers.get("Authorization")
-        if auth_header:
-            token = auth_header.split(" ")[1]
-
-            try:
-                payload = jwt.decode(
-                    token, current_app.config["JWT_SECRET_KEY"], algorithms=["HS256"]
-                )
-
-                jti = payload.get("jti")
-                exp = payload.get("exp")
-
-                if jti and exp:
-                    expires_at = datetime.fromtimestamp(exp)
-                    JWTBlacklist.add_to_blacklist(
-                        jti=jti, user_id=current_user.id, expires_at=expires_at, reason="logout_all"
-                    )
-            except Exception:  # noqa: E722
-                pass
-
+        current_user.invalidate_all_tokens()
+        db.session.commit()
         return jsonify({"message": "已登出所有設備"}), 200
 
     except Exception as e:
+        db.session.rollback()
         current_app.logger.error(f"Logout all error: {str(e)}")
         return jsonify({"message": "登出失敗"}), 500
 

@@ -6,12 +6,14 @@ from flask import Blueprint, current_app, jsonify, request
 
 from src.database import db
 from src.decorators import token_required
+from src.audit_log import audit_log, AuditActions
 
 two_factor_bp = Blueprint("two_factor", __name__)
 
 
 @two_factor_bp.route("/auth/2fa/setup", methods=["POST"])
 @token_required
+@audit_log(action=AuditActions.TWO_FA_SETUP, resource_type="user")
 def setup_2fa(current_user):
     """設置 2FA - 生成密鑰和 QR 碼"""
     try:
@@ -55,6 +57,7 @@ def setup_2fa(current_user):
 
 @two_factor_bp.route("/auth/2fa/enable", methods=["POST"])
 @token_required
+@audit_log(action=AuditActions.TWO_FA_ENABLE, resource_type="user")
 def enable_2fa(current_user):
     """啟用 2FA - 驗證 OTP 後啟用"""
     try:
@@ -81,6 +84,7 @@ def enable_2fa(current_user):
 
 @two_factor_bp.route("/auth/2fa/disable", methods=["POST"])
 @token_required
+@audit_log(action=AuditActions.TWO_FA_DISABLE, resource_type="user")
 def disable_2fa(current_user):
     """停用 2FA"""
     try:

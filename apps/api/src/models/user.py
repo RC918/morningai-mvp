@@ -86,3 +86,13 @@ class User(db.Model):
             data["two_factor_secret"] = self.two_factor_secret
 
         return data
+
+
+    tokens_valid_since = db.Column(db.DateTime, nullable=True)
+
+
+
+    def invalidate_all_tokens(self):
+        """使所有舊 token 失效"""
+        self.tokens_valid_since = datetime.utcnow()
+
