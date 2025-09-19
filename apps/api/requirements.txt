@@ -32,3 +32,4 @@ requests
 # Async Tasks
 celery
 redis
+uvicorn
