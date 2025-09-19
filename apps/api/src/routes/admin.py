@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 
-from src.models.user import User, db
 from src.models.jwt_blacklist import JWTBlacklist
+from src.models.user import User, db
 from src.routes.auth import admin_required, token_required
 
 admin_bp = Blueprint("admin", __name__)

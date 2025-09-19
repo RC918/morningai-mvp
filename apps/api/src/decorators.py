@@ -3,8 +3,8 @@ from functools import wraps
 import jwt
 from flask import current_app, jsonify, request
 
-from src.models.user import User
 from src.models.jwt_blacklist import JWTBlacklist
+from src.models.user import User
 
 
 def require_role(required_role):

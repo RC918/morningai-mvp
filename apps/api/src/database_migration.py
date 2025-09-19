@@ -3,9 +3,11 @@
 用於安全地添加缺失的欄位到現有的資料庫表中
 """
 
-from sqlalchemy import text, inspect
-from src.database import db
 import logging
+
+from sqlalchemy import inspect, text
+
+from src.database import db
 
 logger = logging.getLogger(__name__)
 
