@@ -23,6 +23,9 @@ python-dotenv==1.1.1
 pyotp==2.9.0
 qrcode==8.2
 
+# Email
+Flask-Mail==0.10.0
+
 # Scheduling
 Flask-APScheduler==1.12.4
 

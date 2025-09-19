@@ -4,6 +4,7 @@ from flask import Flask, jsonify
 from flask_apscheduler import APScheduler
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
+from flask_mail import Mail
 
 # 導入資料庫和模型
 from src.database import db
@@ -45,8 +46,18 @@ app.config["JWT_TOKEN_LOCATION"] = ["headers"]
 app.config["JWT_HEADER_NAME"] = "Authorization"
 app.config["JWT_HEADER_TYPE"] = "Bearer"
 
+# 配置 Flask-Mail
+app.config['MAIL_SERVER'] = os.environ.get('SMTP_HOST')
+app.config['MAIL_PORT'] = int(os.environ.get('SMTP_PORT', 587))
+app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'true').lower() in ['true', 'on', '1']
+app.config['MAIL_USERNAME'] = os.environ.get('SMTP_USER')
+app.config['MAIL_PASSWORD'] = os.environ.get('SMTP_PASS')
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('EMAIL_FROM')
+
+# 初始化擴展
 db.init_app(app)
 jwt = JWTManager(app)
+mail = Mail(app)
 
 # 配置和初始化 APScheduler
 app.config["SCHEDULER_API_ENABLED"] = True
@@ -181,13 +192,3 @@ print_routes()
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(debug=True, host="0.0.0.0", port=port)
-
-
-# 配置 Flask-Mail
-app.config['MAIL_SERVER'] = os.environ.get('SMTP_HOST')
-app.config['MAIL_PORT'] = int(os.environ.get('SMTP_PORT', 587))
-app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'true').lower() in ['true', 'on', '1']
-app.config['MAIL_USERNAME'] = os.environ.get('SMTP_USER')
-app.config['MAIL_PASSWORD'] = os.environ.get('SMTP_PASS')
-app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('EMAIL_FROM')
-
