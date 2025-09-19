@@ -99,6 +99,7 @@ with app.app_context():
         try:
             # 嘗試查詢用戶表的所有欄位
             from sqlalchemy import text
+
             result = db.session.execute(
                 text("SELECT column_name FROM information_schema.columns WHERE table_name = 'user'")
             )
