@@ -18,6 +18,7 @@ from src.routes.admin import admin_bp
 from src.routes.auth import auth_bp
 from src.routes.jwt_blacklist import jwt_blacklist_bp
 from src.routes.two_factor import two_factor_bp
+from src.routes.email_verification import email_verification_bp
 
 app = Flask(__name__)
 CORS(app)
@@ -56,6 +57,7 @@ app.register_blueprint(auth_bp, url_prefix="/api")
 app.register_blueprint(admin_bp, url_prefix="/api/admin")
 app.register_blueprint(two_factor_bp, url_prefix="/api")
 app.register_blueprint(jwt_blacklist_bp, url_prefix="/api")
+app.register_blueprint(email_verification_bp, url_prefix="/api")
 
 
 @app.route("/")
@@ -65,7 +67,16 @@ def home():
 
 @app.route("/health")
 def health_check():
-    return jsonify(status="ok", message="API is healthy")
+    import subprocess
+    try:
+        # 獲取 git commit hash
+        git_sha = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], 
+                                        cwd='/opt/render/project/src', 
+                                        stderr=subprocess.DEVNULL).decode().strip()
+    except:
+        git_sha = "unknown"
+    
+    return jsonify(ok=True, version=git_sha)
 
 
 # 添加路由列印功能（用於調試）
@@ -165,3 +176,13 @@ print_routes()
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(debug=True, host="0.0.0.0", port=port)
+
+
+# 配置 Flask-Mail
+app.config['MAIL_SERVER'] = os.environ.get('SMTP_HOST')
+app.config['MAIL_PORT'] = int(os.environ.get('SMTP_PORT', 587))
+app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'true').lower() in ['true', 'on', '1']
+app.config['MAIL_USERNAME'] = os.environ.get('SMTP_USER')
+app.config['MAIL_PASSWORD'] = os.environ.get('SMTP_PASS')
+app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('EMAIL_FROM')
+

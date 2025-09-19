@@ -6,6 +6,7 @@ import jwt
 from flask import Blueprint, jsonify, request
 
 from src.decorators import token_required
+from src.audit_log import audit_log, AuditActions
 from src.models.user import User, db
 
 auth_bp = Blueprint("auth", __name__)
@@ -28,6 +29,7 @@ def admin_required(f):
 
 
 @auth_bp.route("/register", methods=["POST"])
+@audit_log(action=AuditActions.REGISTER, resource_type="user")
 def register():
     """用戶註冊"""
     try:
@@ -71,6 +73,7 @@ def register():
 
 
 @auth_bp.route("/login", methods=["POST"])
+@audit_log(action=AuditActions.LOGIN, resource_type="user")
 def login():
     """用戶登錄"""
     try:
@@ -149,6 +152,7 @@ def get_profile(current_user):
 
 @auth_bp.route("/profile", methods=["PUT"])
 @token_required
+@audit_log(action=AuditActions.USER_UPDATED, resource_type="user")
 def update_profile(current_user):
     """更新用戶資料"""
     try:
@@ -178,6 +182,7 @@ def update_profile(current_user):
 @auth_bp.route("/users/<int:user_id>/status", methods=["PUT"])
 @token_required
 @admin_required
+@audit_log(action=AuditActions.USER_STATUS_CHANGED, resource_type="user")
 def update_user_status(current_user, user_id):
     """更新用戶狀態（僅管理員）"""
     try:

@@ -32,8 +32,10 @@ jobs:
 
       # health check against Render STAGING (MUST RUN)
       - name: Health check (staging)
+        environment: staging
         run: |
-          API_URL="https://morningai-mvp.onrender.com"
+          API_URL="${{ vars.API_URL || 'https://morningai-mvp.onrender.com' }}"
+          echo "Testing API URL: $API_URL"
           curl -sS -i "${API_URL}/health" | tee health.txt
           grep " 200 " -q health.txt
 
