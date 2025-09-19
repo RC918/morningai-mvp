@@ -4,3 +4,13 @@
 SECRETS_MATRIX.csv
 
 .vercel
+
+
+# Python cache
+__pycache__/
+*.pyc
+__pycache__/
+*.py[codar
+.llm.cas
+*.pyc
+
