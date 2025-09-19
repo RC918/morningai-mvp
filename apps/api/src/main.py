@@ -98,7 +98,7 @@ def print_routes():
     """啟動時列印所有路由，方便調試 404/405 問題"""
     print("=== Available Routes ===")
     for rule in app.url_map.iter_rules():
-        methods = ','.join(rule.methods - {'HEAD', 'OPTIONS'})
+        methods = ",".join(rule.methods - {"HEAD", "OPTIONS"})
         print(f"{rule.endpoint:30s} {methods:20s} {rule.rule}")
     print("========================")
 
@@ -109,27 +109,32 @@ with app.app_context():
         # 執行資料庫遷移，確保所有表格和欄位都存在
         print("🔄 Running database migrations...")
         from src.database_migration import run_all_migrations
+
         migration_results = run_all_migrations()
         print(f"✅ Database migrations completed: {migration_results}")
-        
+
         # 檢查遷移是否失敗，如果失敗則使用 create_all 作為後備
         if any("FAILED" in str(result) for result in migration_results):
             print("⚠️ Some migrations failed, attempting fallback with db.create_all()...")
             db.create_all()
             print("✅ Fallback database creation completed")
-        
+
         # 驗證表格結構是否正確
         print("🔍 Verifying database schema...")
         try:
             # 嘗試查詢用戶表的所有欄位
-            result = db.session.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name = 'user'"))
+            from sqlalchemy import text
+
+            result = db.session.execute(
+                text("SELECT column_name FROM information_schema.columns WHERE table_name = 'user'")
+            )
             columns = [row[0] for row in result]
             print(f"📋 User table columns: {columns}")
-            
+
             # 檢查必要的欄位是否存在
-            required_columns = ['two_factor_secret', 'two_factor_enabled']
+            required_columns = ["two_factor_secret", "two_factor_enabled"]
             missing_columns = [col for col in required_columns if col not in columns]
-            
+
             if missing_columns:
                 print(f"❌ Missing columns: {missing_columns}")
                 # 強制重新創建表格
@@ -139,7 +144,7 @@ with app.app_context():
                 print("✅ Tables recreated successfully")
             else:
                 print("✅ All required columns present")
-                
+
         except Exception as schema_error:
             print(f"⚠️ Schema verification failed: {schema_error}")
             print("🔄 Attempting full table recreation...")
@@ -149,7 +154,7 @@ with app.app_context():
                 print("✅ Full table recreation completed")
             except Exception as recreation_error:
                 print(f"❌ Table recreation failed: {recreation_error}")
-            
+
         # 檢查並創建默認管理員用戶
         try:
             admin_user = User.query.filter_by(email="admin@morningai.com").first()
@@ -178,7 +183,7 @@ with app.app_context():
                 print("Admin user already exists with username 'admin'")
         else:
             print("Admin user already exists with email 'admin@morningai.com'")
-            
+
     except Exception as e:
         print(f"Database initialization error: {e}")
         # 如果資料庫初始化失敗，嘗試繼續運行（可能表格已存在）

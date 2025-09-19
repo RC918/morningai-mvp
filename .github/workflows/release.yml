@@ -1,12 +1,10 @@
 name: Release
 
-on: 
+on:
   push:
     tags:
       - 'v*.*.*'
   workflow_dispatch:
-  pull_request:
-    branches: [ main ]
 
 permissions:
   contents: write
@@ -15,16 +13,37 @@ jobs:
   release_api:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: []
-    continue-on-error: false
-    strategy:
-      max-attempts: 2
-    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Get previous tag
+        id: previoustag
+        uses: "WyriHaximus/github-action-get-previous-tag@v1"
+        with:
+          fallback: 0.0.0
+
+      - name: Generate Release Notes
+        id: generate_release_notes
+        run: |
+          echo "## Release Notes for ${{ github.ref_name }}" > release_notes.md
+          echo "### Changes since ${{ steps.previoustag.outputs.tag }}" >> release_notes.md
+          echo "- Changed modules: [List modules here]" >> release_notes.md
+          echo "- Risks: [Identify risks here]" >> release_notes.md
+          echo "- Rollback steps: [Provide rollback steps here]" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "### Corresponding PRs/Commits" >> release_notes.md
+          git log --pretty=format:'- %h %s (%an)' ${{ steps.previoustag.outputs.tag }}..${{ github.ref_name }} >> release_notes.md
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          body_path: release_notes.md
+          generate_release_notes: false # We generate our own
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -67,31 +86,11 @@ jobs:
           sleep 10
           curl --fail http://localhost:5000/health | tee -a release_log.txt
 
-      - name: Get previous tag
-        id: previoustag
-        uses: "WyriHaximus/github-action-get-previous-tag@v1"
+      - name: Deploy to Render
+        uses: johnbeynon/render-deploy-action@v0.0.1
         with:
-          fallback: 0.0.0
-
-      - name: Generate Release Notes
-        run: |
-          echo "## API Release Notes for ${{ github.ref_name }}" > release_notes.md
-          echo "### Changes since ${{ steps.previoustag.outputs.tag }}" >> release_notes.md
-          echo "- API modules updated and tested" >> release_notes.md
-          echo "- Health check verified" >> release_notes.md
-          echo "" >> release_notes.md
-          echo "### Commits" >> release_notes.md
-          git log --pretty=format:'- %h %s (%an)' ${{ steps.previoustag.outputs.tag }}..${{ github.ref_name }} >> release_notes.md
-          echo "API release completed successfully" | tee -a release_log.txt
-
-      - name: Create API Release Tag
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v1
-        with:
-          body_path: release_notes.md
-          tag_name: ${{ github.ref_name }}-api
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          service-id: ${{ secrets.RENDER_SERVICE_ID }}
+          api-key: ${{ secrets.RENDER_API_KEY }}
 
       - name: Upload API Release Log
         uses: actions/upload-artifact@v4
@@ -104,11 +103,6 @@ jobs:
   release_web:
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: []
-    continue-on-error: false
-    strategy:
-      max-attempts: 2
-    
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -138,27 +132,17 @@ jobs:
         working-directory: apps/web
         run: npm run build | tee -a release_log.txt
 
-      - name: Deploy to Vercel Staging
+      - name: Deploy to Vercel
         uses: amondnet/vercel-action@v20
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: '--env staging'
-        env:
-          VERCEL_SCOPE: ${{ secrets.VERCEL_ORG_ID }}
-
-      - name: Generate Web Release Notes
-        run: |
-          echo "## Web Release Notes for ${{ github.ref_name }}" > release_notes.md
-          echo "### Web Application" >> release_notes.md
-          echo "- Lint, type check, and tests passed" >> release_notes.md
-          echo "- Build successful" >> release_notes.md
-          echo "- Deployed to Vercel staging" >> release_notes.md
-          echo "Web release completed successfully" | tee -a release_log.txt
+          vercel-args: '--prod'
 
       - name: Upload Web Release Log
         uses: actions/upload-artifact@v4
         with:
           name: release_log_web
           path: release_log.txt
+

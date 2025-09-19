@@ -3,7 +3,7 @@ from datetime import datetime
 import jwt
 from flask import Blueprint, current_app, jsonify, request
 
-from src.decorators import require_role, token_required
+from src.decorators import token_required
 from src.models.jwt_blacklist import JWTBlacklist
 
 jwt_blacklist_bp = Blueprint("jwt_blacklist", __name__)
