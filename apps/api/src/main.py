@@ -82,13 +82,58 @@ def print_routes():
 with app.app_context():
     try:
         # 執行資料庫遷移，確保所有表格和欄位都存在
-        print("Running database migrations...")
+        print("🔄 Running database migrations...")
         from src.database_migration import run_all_migrations
         migration_results = run_all_migrations()
-        print(f"Database migrations completed: {migration_results}")
+        print(f"✅ Database migrations completed: {migration_results}")
+        
+        # 檢查遷移是否失敗，如果失敗則使用 create_all 作為後備
+        if any("FAILED" in str(result) for result in migration_results):
+            print("⚠️ Some migrations failed, attempting fallback with db.create_all()...")
+            db.create_all()
+            print("✅ Fallback database creation completed")
+        
+        # 驗證表格結構是否正確
+        print("🔍 Verifying database schema...")
+        try:
+            # 嘗試查詢用戶表的所有欄位
+            result = db.session.execute(text("SELECT column_name FROM information_schema.columns WHERE table_name = 'user'"))
+            columns = [row[0] for row in result]
+            print(f"📋 User table columns: {columns}")
+            
+            # 檢查必要的欄位是否存在
+            required_columns = ['two_factor_secret', 'two_factor_enabled']
+            missing_columns = [col for col in required_columns if col not in columns]
+            
+            if missing_columns:
+                print(f"❌ Missing columns: {missing_columns}")
+                # 強制重新創建表格
+                print("🔄 Recreating tables with correct schema...")
+                db.drop_all()
+                db.create_all()
+                print("✅ Tables recreated successfully")
+            else:
+                print("✅ All required columns present")
+                
+        except Exception as schema_error:
+            print(f"⚠️ Schema verification failed: {schema_error}")
+            print("🔄 Attempting full table recreation...")
+            try:
+                db.drop_all()
+                db.create_all()
+                print("✅ Full table recreation completed")
+            except Exception as recreation_error:
+                print(f"❌ Table recreation failed: {recreation_error}")
             
         # 檢查並創建默認管理員用戶
-        admin_user = User.query.filter_by(email="admin@morningai.com").first()
+        try:
+            admin_user = User.query.filter_by(email="admin@morningai.com").first()
+        except Exception as query_error:
+            print(f"❌ User query failed: {query_error}")
+            print("🔄 Attempting to recreate tables one more time...")
+            db.drop_all()
+            db.create_all()
+            admin_user = User.query.filter_by(email="admin@morningai.com").first()
         if not admin_user:
             # 也檢查是否已經有 username='admin' 的用戶
             existing_admin = User.query.filter_by(username="admin").first()

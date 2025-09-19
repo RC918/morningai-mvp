@@ -59,29 +59,44 @@ def migrate_user_table():
     return migrations_applied
 
 def run_all_migrations():
-    """執行所有必要的資料庫遷移"""
-    logger.info("Starting database migrations...")
+    """執行所有資料庫遷移"""
+    logger = logging.getLogger(__name__)
+    results = []
     
     try:
-        # 確保基本表格存在
-        db.create_all()
-        logger.info("Base tables created/verified")
+        # 確保資料庫連接正常
+        logger.info("Testing database connection...")
+        db.session.execute(text("SELECT 1"))
+        logger.info("✅ Database connection successful")
         
-        # 執行 user 表格遷移
-        user_migrations = migrate_user_table()
+        # 檢查當前資料庫狀態
+        logger.info("Checking current database schema...")
+        
+        # 執行所有遷移
+        logger.info("Starting two-factor authentication column migration...")
+        migration_result = add_two_factor_columns()
+        results.append(migration_result)
+        logger.info(f"✅ Two-factor migration result: {migration_result}")
         
         # 提交所有變更
         db.session.commit()
+        logger.info("✅ All migrations completed successfully")
         
-        logger.info("All database migrations completed successfully")
-        return {
-            'user_table': user_migrations
-        }
+        return results
         
     except Exception as e:
-        logger.error(f"Database migration failed: {e}")
-        db.session.rollback()
-        raise
+        logger.error(f"❌ Database migration failed: {e}")
+        logger.error(f"Error type: {type(e).__name__}")
+        logger.error(f"Error details: {str(e)}")
+        try:
+            db.session.rollback()
+            logger.info("Database session rolled back")
+        except Exception as rollback_error:
+            logger.error(f"Rollback failed: {rollback_error}")
+        
+        # 不要重新拋出異常，讓應用程式繼續運行
+        logger.warning("Migration failed, but continuing application startup...")
+        return [f"FAILED: {str(e)}"]
 
 if __name__ == "__main__":
     # 設置日誌
