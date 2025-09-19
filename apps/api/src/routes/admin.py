@@ -150,7 +150,6 @@ def update_user_status(current_user, user_id):
         )
 
 
-
 @admin_bp.route("/blacklist", methods=["GET"])
 @token_required
 @admin_required

@@ -55,7 +55,11 @@ class JWTBlacklist(db.Model):
                 return existing
 
             blacklisted_token = cls(
-                jti=jti, user_id=user_id, token_type=token_type, expires_at=expires_at, reason=reason
+                jti=jti,
+                user_id=user_id,
+                token_type=token_type,
+                expires_at=expires_at,
+                reason=reason,
             )
             db.session.add(blacklisted_token)
             db.session.commit()
