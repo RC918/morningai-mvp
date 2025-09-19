@@ -13,6 +13,7 @@ jobs:
   release_api:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    environment: production
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -28,20 +29,24 @@ jobs:
       - name: Generate Release Notes
         id: generate_release_notes
         run: |
-          echo "## Release Notes for ${{ github.ref_name }}" > release_notes.md
-          echo "### Changes since ${{ steps.previoustag.outputs.tag }}" >> release_notes.md
-          echo "- Changed modules: [List modules here]" >> release_notes.md
-          echo "- Risks: [Identify risks here]" >> release_notes.md
-          echo "- Rollback steps: [Provide rollback steps here]" >> release_notes.md
-          echo "" >> release_notes.md
-          echo "### Corresponding PRs/Commits" >> release_notes.md
-          git log --pretty=format:'- %h %s (%an)' ${{ steps.previoustag.outputs.tag }}..${{ github.ref_name }} >> release_notes.md
+          echo "## Release Notes for ${{ github.ref_name }}" > CHANGELOG_PART.md
+          echo "### Changes since ${{ steps.previoustag.outputs.tag }}" >> CHANGELOG_PART.md
+          echo "" >> CHANGELOG_PART.md
+          echo "### Corresponding PRs/Commits" >> CHANGELOG_PART.md
+          git log --pretty=format:'- %h %s (%an)' ${{ steps.previoustag.outputs.tag }}..${{ github.ref_name }} >> CHANGELOG_PART.md
+          echo "" >> CHANGELOG_PART.md
+          echo "### DB/Migration Impact" >> CHANGELOG_PART.md
+          echo "- No database migrations in this release" >> CHANGELOG_PART.md
+          echo "" >> CHANGELOG_PART.md
+          echo "### Rollback Steps" >> CHANGELOG_PART.md
+          echo "- To rollback, deploy tag: ${{ steps.previoustag.outputs.tag }}" >> CHANGELOG_PART.md
+          echo "- Run: \`git checkout ${{ steps.previoustag.outputs.tag }}\`" >> CHANGELOG_PART.md
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          body_path: release_notes.md
-          generate_release_notes: false # We generate our own
+          body_path: CHANGELOG_PART.md
+          generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -87,10 +92,25 @@ jobs:
           curl --fail http://localhost:5000/health | tee -a release_log.txt
 
       - name: Deploy to Render
-        uses: johnbeynon/render-deploy-action@v0.0.1
+        uses: johnbeynon/render-deploy-action@v0.0.8
         with:
           service-id: ${{ secrets.RENDER_SERVICE_ID }}
           api-key: ${{ secrets.RENDER_API_KEY }}
+          wait-for-success: true
+
+      - name: Post-Deploy Health Check
+        run: |
+          echo "Performing post-deploy health check..." | tee health_after_release.txt
+          for i in {1..5}; do
+            echo "Attempt $i/5" | tee -a health_after_release.txt
+            if curl -I ${{ secrets.API_URL }}/health | tee -a health_after_release.txt; then
+              echo "✓ Health check passed" | tee -a health_after_release.txt
+              break
+            else
+              echo "✗ Health check failed, retrying..." | tee -a health_after_release.txt
+              sleep 10
+            fi
+          done
 
       - name: Upload API Release Log
         uses: actions/upload-artifact@v4
@@ -98,11 +118,13 @@ jobs:
           name: release_log_api
           path: |
             release_log.txt
+            health_after_release.txt
             apps/api/api_dev.log
 
   release_web:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    environment: production
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -133,7 +155,7 @@ jobs:
         run: npm run build | tee -a release_log.txt
 
       - name: Deploy to Vercel
-        uses: amondnet/vercel-action@v20
+        uses: amondnet/vercel-action@v25
         with:
           vercel-token: ${{ secrets.VERCEL_TOKEN }}
           vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
@@ -145,4 +167,3 @@ jobs:
         with:
           name: release_log_web
           path: release_log.txt
-

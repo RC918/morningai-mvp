@@ -28,13 +28,13 @@ const Sidebar = ({ user, onLogout }) => {
       description: '系統狀態總覽'
     },
     {
-      path: '/strategies',
+      path: '/strategy',
       icon: Brain,
       label: '策略管理',
       description: '管理AI策略'
     },
     {
-      path: '/approvals',
+      path: '/decisions',
       icon: CheckCircle,
       label: '決策審批',
       description: '人工審核待辦',
@@ -47,7 +47,7 @@ const Sidebar = ({ user, onLogout }) => {
       description: '決策歷史回顧'
     },
     {
-      path: '/costs',
+      path: '/cost',
       icon: DollarSign,
       label: '成本分析',
       description: 'AI服務成本'

@@ -10,7 +10,8 @@ class JWTBlacklist(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     jti = db.Column(db.String(36), unique=True, nullable=False, index=True)  # JWT ID
-    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+
     token_type = db.Column(db.String(20), nullable=False, default="access")  # access, refresh
     expires_at = db.Column(db.DateTime, nullable=False, index=True)  # 索引用於清理查詢
     blacklisted_at = db.Column(db.DateTime, default=datetime.utcnow)
