@@ -90,12 +90,93 @@ app.register_blueprint(webhook_bp, url_prefix="/api")
 from src.simple_docs import simple_docs_bp
 app.register_blueprint(simple_docs_bp)
 
-
 @app.route("/")
-def home():
-    return jsonify(message="Welcome to MorningAI MVP API!")
+def hello():
+    """根路徑歡迎訊息"""
+    return jsonify({"message": "Welcome to MorningAI MVP API!"})
 
-# 添加路由列印功能（用於調試）
+@app.route("/docs")
+@app.route("/docs/")
+def api_docs():
+    """API 文檔頁面"""
+    docs_html = """
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MorningAI MVP API 文檔</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+        .header { background: #f4f4f4; padding: 20px; border-radius: 5px; margin-bottom: 30px; }
+        .endpoint { background: #f9f9f9; padding: 15px; margin: 10px 0; border-radius: 5px; border-left: 4px solid #007cba; }
+        .method { display: inline-block; padding: 4px 8px; border-radius: 3px; color: white; font-weight: bold; margin-right: 10px; }
+        .get { background: #61affe; }
+        .post { background: #49cc90; }
+        .code { background: #f4f4f4; padding: 10px; border-radius: 3px; font-family: monospace; }
+        .status-ok { color: #28a745; }
+        .status-error { color: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🌅 MorningAI MVP API 文檔</h1>
+        <p>版本: 1.0.0 | 基礎 URL: <code>https://morningai-mvp.onrender.com</code></p>
+        <p><strong>狀態:</strong> <span class="status-ok">✅ 服務運行中</span></p>
+    </div>
+
+    <h2>🔐 認證</h2>
+    <p>大部分 API 端點需要 JWT Token 認證。在請求標頭中包含:</p>
+    <div class="code">Authorization: Bearer &lt;your_jwt_token&gt;</div>
+
+    <h2>📋 主要 API 端點</h2>
+
+    <div class="endpoint">
+        <span class="method get">GET</span><strong>/health</strong>
+        <p>健康檢查端點</p>
+        <div class="code">curl https://morningai-mvp.onrender.com/health</div>
+    </div>
+
+    <div class="endpoint">
+        <span class="method post">POST</span><strong>/api/register</strong>
+        <p>用戶註冊</p>
+        <div class="code">curl -X POST https://morningai-mvp.onrender.com/api/register -H "Content-Type: application/json" -d '{"username": "testuser", "email": "test@example.com", "password": "password123"}'</div>
+    </div>
+
+    <div class="endpoint">
+        <span class="method post">POST</span><strong>/api/login</strong>
+        <p>用戶登入</p>
+        <div class="code">curl -X POST https://morningai-mvp.onrender.com/api/login -H "Content-Type: application/json" -d '{"email": "test@example.com", "password": "password123"}'</div>
+    </div>
+
+    <div class="endpoint">
+        <span class="method get">GET</span><strong>/api/profile</strong> 🔒
+        <p>獲取用戶資料（需要認證）</p>
+        <div class="code">curl https://morningai-mvp.onrender.com/api/profile -H "Authorization: Bearer &lt;token&gt;"</div>
+    </div>
+
+    <div class="endpoint">
+        <span class="method post">POST</span><strong>/api/auth/logout</strong> 🔒
+        <p>用戶登出</p>
+        <div class="code">curl -X POST https://morningai-mvp.onrender.com/api/auth/logout -H "Authorization: Bearer &lt;token&gt;"</div>
+    </div>
+
+    <h2>🔒 安全特性</h2>
+    <ul>
+        <li><strong>JWT 認證:</strong> ✅ 已實施</li>
+        <li><strong>JWT 黑名單:</strong> ✅ 已實施</li>
+        <li><strong>RBAC:</strong> ✅ 已實施</li>
+        <li><strong>RLS:</strong> ✅ 已實施</li>
+    </ul>
+
+    <footer style="margin-top: 50px; padding-top: 20px; border-top: 1px solid #eee; color: #666;">
+        <p>© 2025 MorningAI MVP | 驗收測試通過 ✅</p>
+    </footer>
+</body>
+</html>
+    """
+    return docs_html
+
 def print_routes():
     """啟動時列印所有路由，方便調試 404/405 問題"""
     print("=== Available Routes ===")
