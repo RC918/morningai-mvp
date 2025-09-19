@@ -27,9 +27,9 @@ app = Flask(__name__)
 CORS(app, origins=[
     "http://localhost:3000",
     "http://localhost:5173", 
-    "https://*.vercel.app",
+    "https://morningai-mvp-web.vercel.app",
     "https://morningai-mvp-*.vercel.app"
-])
+], allow_headers=["Content-Type", "Authorization"], allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
 
 # 配置資料庫
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///app.db")
