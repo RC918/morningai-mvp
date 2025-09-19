@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -41,24 +41,7 @@ const TwoFactorAuthSettings = () => {
     }
   }, [token, fetchTwoFactorStatus]);
 
-  const fetchTwoFactorStatus = async () => {
-    try {
-      const response = await fetch(`${API_URL}/auth/2fa/status`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      const data = await response.json();
-      if (response.ok) {
-        setTwoFactorEnabled(data.two_factor_enabled);
-      } else {
-        setMessage(data.message || '獲取 2FA 狀態失敗');
-      }
-    } catch (error) {
-      console.error('Error fetching 2FA status:', error);
-      setMessage('獲取 2FA 狀態時發生錯誤');
-    }
-  };
+
 
   const handleSetup2FA = async () => {
     setLoading(true);
