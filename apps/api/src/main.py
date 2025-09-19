@@ -71,18 +71,11 @@ def health_check():
 # 在應用上下文中安全地初始化資料庫表和管理員用戶
 with app.app_context():
     try:
-        # 使用更安全的方式創建表格，避免衝突
-        from sqlalchemy import inspect
-        inspector = inspect(db.engine)
-        existing_tables = inspector.get_table_names()
-        
-        # 只創建不存在的表格
-        if 'user' not in existing_tables or 'jwt_blacklist' not in existing_tables:
-            print("Creating missing database tables...")
-            db.create_all()
-            print("Database tables created successfully")
-        else:
-            print("Database tables already exist, skipping creation")
+        # 執行資料庫遷移，確保所有表格和欄位都存在
+        print("Running database migrations...")
+        from src.database_migration import run_all_migrations
+        migration_results = run_all_migrations()
+        print(f"Database migrations completed: {migration_results}")
             
         # 檢查並創建默認管理員用戶
         admin_user = User.query.filter_by(email="admin@morningai.com").first()
