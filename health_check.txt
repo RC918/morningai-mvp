@@ -1,0 +1,13 @@
+HTTP/2 200 
+date: Fri, 19 Sep 2025 06:55:47 GMT
+content-type: application/json
+access-control-allow-origin: *
+rndr-id: 4cb5375e-53bd-400c
+vary: Accept-Encoding
+x-render-origin-server: gunicorn
+cf-cache-status: DYNAMIC
+server: cloudflare
+cf-ray: 98172df1e97bc9a0-IAD
+alt-svc: h3=":443"; ma=86400
+
+{"message":"API is healthy","status":"ok"}

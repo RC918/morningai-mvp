@@ -1,0 +1,23 @@
+name: Blacklist Cleanup (hourly)
+
+on:
+  schedule:
+    - cron: "0 * * * *"  # Every hour
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Call cleanup endpoint
+        env: 
+          API_URL: ${{ vars.API_URL || 'https://morningai-mvp.onrender.com' }}
+        run: |
+          # Try to call cleanup endpoint if it exists
+          curl -sS -X POST "${API_URL}/api/admin/blacklist/cleanup" \
+            -H "Content-Type: application/json" \
+            -w "HTTP %{http_code}\n" || echo "Cleanup endpoint not available, relying on in-process scheduler"
+          
+          # Also check if the API is healthy
+          curl -sS "${API_URL}/health" -w "Health check: HTTP %{http_code}\n"
