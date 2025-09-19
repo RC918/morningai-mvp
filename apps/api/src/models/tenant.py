@@ -125,6 +125,7 @@ class TenantInvitation(db.Model):
             'tenant_name': self.tenant.name if self.tenant else None,
             'email': self.email,
             'role': self.role,
+            'token': self.token,
             'is_accepted': self.is_accepted,
             'is_expired': self.is_expired,
             'invited_by': self.invited_by.username if self.invited_by else None,

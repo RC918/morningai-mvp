@@ -4,8 +4,13 @@ import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { Toaster } from '@/components/ui/sonner';
 import Sidebar from '@/components/Sidebar';
 import Dashboard from '@/components/Dashboard';
-import TwoFactorAuthSettings from '@/components/TwoFactorAuthSettings';
-import UserManagement from '@/components/UserManagement';
+import TwoFactorAuthSettings from './components/TwoFactorAuthSettings';
+import UserManagement from './components/UserManagement';
+import StrategyManagement from './components/StrategyManagement';
+import DecisionApproval from './components/DecisionApproval';
+import HistoryAnalysis from './components/HistoryAnalysis';
+import CostAnalysis from './components/CostAnalysis';
+import SystemSettings from './components/SystemSettings';
 
 import LoginPage from '@/components/LoginPage';
 import RegisterPage from '@/components/RegisterPage';
@@ -24,7 +29,7 @@ const PrivateRoute = ({ children }) => {
     );
   }
 
-  return isAuthenticated ? children : <Navigate to="/login" />;
+  return isAuthenticated ? children : <Navigate to="/login" replace />;
 };
 
 function App() {
@@ -48,8 +53,28 @@ function App() {
               element={<PrivateRoute><Sidebar /><UserManagement /></PrivateRoute>}
             />
             <Route 
+              path="/strategy" 
+              element={<PrivateRoute><Sidebar /><StrategyManagement /></PrivateRoute>}
+            />
+            <Route 
+              path="/decisions" 
+              element={<PrivateRoute><Sidebar /><DecisionApproval /></PrivateRoute>}
+            />
+            <Route 
+              path="/history" 
+              element={<PrivateRoute><Sidebar /><HistoryAnalysis /></PrivateRoute>}
+            />
+            <Route 
+              path="/cost" 
+              element={<PrivateRoute><Sidebar /><CostAnalysis /></PrivateRoute>}
+            />
+            <Route 
+              path="/settings" 
+              element={<PrivateRoute><Sidebar /><SystemSettings /></PrivateRoute>}
+            />
+            <Route 
               path="/" 
-              element={<Navigate to="/dashboard" />}
+              element={<Navigate to="/login" replace />}
             />
           </Routes>
           <Toaster />
