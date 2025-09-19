@@ -68,6 +68,16 @@ def health_check():
     return jsonify(status="ok", message="API is healthy")
 
 
+# 添加路由列印功能（用於調試）
+def print_routes():
+    """啟動時列印所有路由，方便調試 404/405 問題"""
+    print("=== Available Routes ===")
+    for rule in app.url_map.iter_rules():
+        methods = ','.join(rule.methods - {'HEAD', 'OPTIONS'})
+        print(f"{rule.endpoint:30s} {methods:20s} {rule.rule}")
+    print("========================")
+
+
 # 在應用上下文中安全地初始化資料庫表和管理員用戶
 with app.app_context():
     try:
@@ -102,7 +112,11 @@ with app.app_context():
     except Exception as e:
         print(f"Database initialization error: {e}")
         # 如果資料庫初始化失敗，嘗試繼續運行（可能表格已存在）
-        print("Continuing with existing database structure...")
+
+
+# 在應用啟動時列印路由（用於調試）
+print_routes()
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 5000))
+    app.run(debug=True, host="0.0.0.0", port=port)
