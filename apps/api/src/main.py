@@ -1,11 +1,6 @@
 import os
-
-# 導入 JWT 相關庫
 from datetime import timedelta
-
 from flask import Flask, jsonify
-
-# 導入 APScheduler
 from flask_apscheduler import APScheduler
 from flask_jwt_extended import JWTManager
 from flask_cors import CORS
@@ -24,6 +19,12 @@ from src.routes.tenant import tenant_bp
 from src.routes.webhook import webhook_bp
 
 app = Flask(__name__)
+
+# 立即註冊健康檢查端點，確保它在任何耗時操作前可用
+@app.route("/health")
+def health_check():
+    return jsonify(ok=True, message="Service is healthy")
+
 CORS(app, origins=[
     "http://localhost:3000",
     "http://localhost:5173", 
@@ -77,12 +78,6 @@ app.register_blueprint(webhook_bp, url_prefix="/api")
 @app.route("/")
 def home():
     return jsonify(message="Welcome to MorningAI MVP API!")
-
-
-@app.route("/health")
-def health_check():
-    return jsonify(ok=True, message="Service is healthy")
-
 
 # 添加路由列印功能（用於調試）
 def print_routes():
@@ -156,7 +151,7 @@ with app.app_context():
             db.create_all()
             admin_user = User.query.filter_by(email="admin@morningai.com").first()
         if not admin_user:
-            # 也檢查是否已經有 username='admin' 的用戶
+            # 也檢查是否已經有 username=\'admin\' 的用戶
             existing_admin = User.query.filter_by(username="admin").first()
             if not existing_admin:
                 admin_user = User(
@@ -171,9 +166,9 @@ with app.app_context():
                 db.session.commit()
                 print("Default admin user created: admin@morningai.com/admin123")
             else:
-                print("Admin user already exists with username 'admin'")
+                print("Admin user already exists with username \'admin\'")
         else:
-            print("Admin user already exists with email 'admin@morningai.com'")
+            print("Admin user already exists with email \'admin@morningai.com\'")
 
     except Exception as e:
         print(f"Database initialization error: {e}")
@@ -189,10 +184,10 @@ if __name__ == "__main__":
 
 
 # 配置 Flask-Mail
-app.config['MAIL_SERVER'] = os.environ.get('SMTP_HOST')
-app.config['MAIL_PORT'] = int(os.environ.get('SMTP_PORT', 587))
-app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'true').lower() in ['true', 'on', '1']
-app.config['MAIL_USERNAME'] = os.environ.get('SMTP_USER')
-app.config['MAIL_PASSWORD'] = os.environ.get('SMTP_PASS')
-app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('EMAIL_FROM')
+app.config[\'MAIL_SERVER\'] = os.environ.get(\'SMTP_HOST\')
+app.config[\'MAIL_PORT\'] = int(os.environ.get(\'SMTP_PORT\', 587))
+app.config[\'MAIL_USE_TLS\'] = os.environ.get(\'MAIL_USE_TLS\', \'true\').lower() in [\'true\', \'on\', \'1\']
+app.config[\'MAIL_USERNAME\'] = os.environ.get(\'SMTP_USER\')
+app.config[\'MAIL_PASSWORD\'] = os.environ.get(\'SMTP_PASS\')
+app.config[\'MAIL_DEFAULT_SENDER\'] = os.environ.get(\'EMAIL_FROM\')
 
