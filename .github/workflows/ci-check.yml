@@ -38,7 +38,8 @@ jobs:
           test -n "${{ vars.API_URL }}" || (echo "API_URL not set in environment 'staging'" && exit 1)
 
       - name: Health check (Render staging)
-        env: { API_URL: ${{ vars.API_URL }} }
+        env:
+          API_URL: ${{ vars.API_URL }}
         run: |
           curl -sS -i "${API_URL}/health" | tee health.txt
           grep " 200 " -q health.txt

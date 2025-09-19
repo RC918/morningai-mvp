@@ -48,7 +48,8 @@ jobs:
       
       - name: Smoke test (API health)
         if: ${{ always() }}
-        env: { API_URL: ${{ vars.API_URL }} }
+        env:
+          API_URL: ${{ vars.API_URL }}
         run: |
           for i in 1 2 3 4 5; do
             echo "Try #$i"; curl -sS -i "${API_URL}/health" | tee health_after_release.txt
