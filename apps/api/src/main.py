@@ -7,6 +7,7 @@ from flask import Flask, jsonify
 
 # 導入 APScheduler
 from flask_apscheduler import APScheduler
+from flask_jwt_extended import JWTManager
 from flask_cors import CORS
 
 # 導入資料庫和模型
@@ -23,7 +24,12 @@ from src.routes.tenant import tenant_bp
 from src.routes.webhook import webhook_bp
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins=[
+    "http://localhost:3000",
+    "http://localhost:5173", 
+    "https://*.vercel.app",
+    "https://morningai-mvp-*.vercel.app"
+])
 
 # 配置資料庫
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///app.db")
@@ -33,9 +39,13 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["JWT_SECRET_KEY"] = os.environ.get(
     "JWT_SECRET_KEY", "super-secret"
 )  # 替換為您的秘密金鑰
-app.config["JWT_ACCESS_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
+app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
+app.config["JWT_TOKEN_LOCATION"] = ["headers"]
+app.config["JWT_HEADER_NAME"] = "Authorization"
+app.config["JWT_HEADER_TYPE"] = "Bearer"
 
 db.init_app(app)
+jwt = JWTManager(app)
 
 # 配置和初始化 APScheduler
 app.config["SCHEDULER_API_ENABLED"] = True

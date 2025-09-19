@@ -3,3 +3,4 @@
 .env*
 SECRETS_MATRIX.csv
 
+.vercel
