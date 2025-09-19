@@ -66,13 +66,13 @@ class ApiClient {
   }
 
   async logout() {
-    return this.request('/api/auth/logout', {
+    return this.request('/api/logout', {
       method: 'POST',
     });
   }
 
   async logoutAll() {
-    return this.request('/api/auth/logout-all', {
+    return this.request('/api/logout-all', {
       method: 'POST',
     });
   }
@@ -91,32 +91,32 @@ class ApiClient {
 
   // 2FA endpoints
   async setup2FA() {
-    return this.request('/api/auth/2fa/setup', {
+    return this.request('/api/2fa/setup', {
       method: 'POST',
     });
   }
 
   async enable2FA(otp) {
-    return this.request('/api/auth/2fa/enable', {
+    return this.request('/api/2fa/enable', {
       method: 'POST',
       body: { otp },
     });
   }
 
   async disable2FA(otp) {
-    return this.request('/api/auth/2fa/disable', {
+    return this.request('/api/2fa/disable', {
       method: 'POST',
       body: { otp },
     });
   }
 
   async get2FAStatus() {
-    return this.request('/api/auth/2fa/status');
+    return this.request('/api/2fa/status');
   }
 
   // Email verification endpoints
   async sendVerificationEmail() {
-    return this.request('/api/auth/email/send-verification', {
+    return this.request('/api/email/send-verification', {
       method: 'POST',
     });
   }
