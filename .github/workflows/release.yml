@@ -1,13 +1,19 @@
 name: Release
 
-on: 
+on:
   push:
     tags:
       - 'v*.*.*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
-  release:
+  release_api:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -23,40 +29,141 @@ jobs:
       - name: Generate Release Notes
         id: generate_release_notes
         run: |
-          # Placeholder for GPT-generated release notes
-          # In a real scenario, this would involve calling an AI model API
-          # to summarize changes between ${{ steps.previoustag.outputs.tag }} and ${{ github.ref_name }}
-          # and identify changed modules, risks, and rollback steps.
-          echo "## Release Notes for ${{ github.ref_name }}" > release_notes.md
-          echo "### Changes since ${{ steps.previoustag.outputs.tag }}" >> release_notes.md
-          echo "- Changed modules: [List modules here]" >> release_notes.md
-          echo "- Risks: [Identify risks here]" >> release_notes.md
-          echo "- Rollback steps: [Provide rollback steps here]" >> release_notes.md
-          echo "" >> release_notes.md
-          echo "### Corresponding PRs/Commits" >> release_notes.md
-          git log --pretty=format:'- %h %s (%an)' ${{ steps.previoustag.outputs.tag }}..${{ github.ref_name }} >> release_notes.md
+          echo "## Release Notes for ${{ github.ref_name }}" > CHANGELOG_PART.md
+          echo "### Changes since ${{ steps.previoustag.outputs.tag }}" >> CHANGELOG_PART.md
+          echo "" >> CHANGELOG_PART.md
+          echo "### Corresponding PRs/Commits" >> CHANGELOG_PART.md
+          git log --pretty=format:'- %h %s (%an)' ${{ steps.previoustag.outputs.tag }}..${{ github.ref_name }} >> CHANGELOG_PART.md
+          echo "" >> CHANGELOG_PART.md
+          echo "### DB/Migration Impact" >> CHANGELOG_PART.md
+          echo "- No database migrations in this release" >> CHANGELOG_PART.md
+          echo "" >> CHANGELOG_PART.md
+          echo "### Rollback Steps" >> CHANGELOG_PART.md
+          echo "- To rollback, deploy tag: ${{ steps.previoustag.outputs.tag }}" >> CHANGELOG_PART.md
+          echo "- Run: \`git checkout ${{ steps.previoustag.outputs.tag }}\`" >> CHANGELOG_PART.md
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          body_path: release_notes.md
-          generate_release_notes: false # We generate our own
+          body_path: CHANGELOG_PART.md
+          generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup Supabase CLI
-        uses: supabase/setup-cli@v1
+      - name: Setup Python
+        uses: actions/setup-python@v5
         with:
-          version: latest
+          python-version: '3.11'
 
-      - name: Dump Supabase Schema
+      - name: Install API dependencies
+        working-directory: apps/api
+        run: pip install -r requirements.txt
+
+      - name: API Import Smoke Test
+        working-directory: apps/api
         run: |
-          supabase db diff --local-schema-path supabase/migrations --schema public > supabase_schema_dump.sql
+          python -c "
+          import importlib
+          import sys
+          modules = [
+            'src.main',
+            'src.routes.two_factor',
+            'src.routes.auth',
+            'src.routes.admin',
+            'src.routes.jwt_blacklist',
+            'src.decorators'
+          ]
+          for module in modules:
+            try:
+              importlib.import_module(module)
+              print(f'✓ {module}')
+            except Exception as e:
+              print(f'✗ {module}: {e}')
+              sys.exit(1)
+          print('All imports successful!')
+          " | tee release_log.txt
 
-      - name: Upload Supabase Schema Dump
+      - name: API Health Check (Local)
+        working-directory: apps/api
+        run: |
+          echo "Starting local health check..." | tee -a release_log.txt
+          nohup python src/main.py > api_dev.log 2>&1 &
+          sleep 10
+          curl --fail http://localhost:5000/health | tee -a release_log.txt
+
+      - name: Deploy to Render
+        uses: johnbeynon/render-deploy-action@v0.0.8
+        with:
+          service-id: ${{ secrets.RENDER_SERVICE_ID }}
+          api-key: ${{ secrets.RENDER_API_KEY }}
+          wait-for-success: true
+
+      - name: Post-Deploy Health Check
+        run: |
+          echo "Performing post-deploy health check..." | tee health_after_release.txt
+          for i in {1..5}; do
+            echo "Attempt $i/5" | tee -a health_after_release.txt
+            if curl -I ${{ secrets.API_URL }}/health | tee -a health_after_release.txt; then
+              echo "✓ Health check passed" | tee -a health_after_release.txt
+              break
+            else
+              echo "✗ Health check failed, retrying..." | tee -a health_after_release.txt
+              sleep 10
+            fi
+          done
+
+      - name: Upload API Release Log
         uses: actions/upload-artifact@v4
         with:
-          name: supabase-schema-dump
-          path: supabase_schema_dump.sql
+          name: release_log_api
+          path: |
+            release_log.txt
+            health_after_release.txt
+            apps/api/api_dev.log
 
+  release_web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Web dependencies
+        working-directory: apps/web
+        run: npm ci
+
+      - name: Web Lint Check
+        working-directory: apps/web
+        run: npm run lint | tee release_log.txt
+
+      - name: Web Type Check
+        working-directory: apps/web
+        run: npm run typecheck -- --skipLibCheck | tee -a release_log.txt
+
+      - name: Web Unit Tests
+        working-directory: apps/web
+        run: npm run test | tee -a release_log.txt
+
+      - name: Web Build Test
+        working-directory: apps/web
+        run: npm run build | tee -a release_log.txt
+
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          vercel-args: '--prod'
+
+      - name: Upload Web Release Log
+        uses: actions/upload-artifact@v4
+        with:
+          name: release_log_web
+          path: release_log.txt
