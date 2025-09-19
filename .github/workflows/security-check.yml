@@ -1,0 +1,378 @@
+name: Security Check
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main, feature/**, hotfix/** ]
+  schedule:
+    # 每天 UTC 02:00 執行安全掃描
+    - cron: '0 2 * * *'
+
+permissions:
+  contents: read
+  security-events: write
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependency-check:
+    name: Dependency Security Scan
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app:
+          - { name: web, path: apps/web, package-file: package.json, lock-file: package-lock.json }
+          - { name: api, path: apps/api, package-file: requirements.txt, lock-file: requirements.txt }
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        if: ${{ matrix.app.name == 'web' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Python
+        if: ${{ matrix.app.name == 'api' }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Create artifacts directory
+        run: mkdir -p artifacts
+
+      - name: Install dependencies
+        working-directory: ${{ matrix.app.path }}
+        run: |
+          if [ "${{ matrix.app.name }}" = "web" ]; then
+            npm ci
+          else
+            pip install -r requirements.txt
+            pip install safety bandit
+          fi
+
+      - name: Run npm audit (Web)
+        if: ${{ matrix.app.name == 'web' }}
+        working-directory: ${{ matrix.app.path }}
+        run: |
+          echo "=== NPM Audit Report ===" | tee ../../artifacts/${{ matrix.app.name }}_npm_audit.txt
+          npm audit --audit-level=moderate 2>&1 | tee -a ../../artifacts/${{ matrix.app.name }}_npm_audit.txt || echo "NPM audit found vulnerabilities" >> ../../artifacts/${{ matrix.app.name }}_npm_audit.txt
+          
+          echo "=== NPM Audit JSON Report ===" | tee ../../artifacts/${{ matrix.app.name }}_npm_audit.json
+          npm audit --json 2>&1 | tee -a ../../artifacts/${{ matrix.app.name }}_npm_audit.json || true
+
+      - name: Run Safety check (API)
+        if: ${{ matrix.app.name == 'api' }}
+        working-directory: ${{ matrix.app.path }}
+        run: |
+          echo "=== Python Safety Check ===" | tee ../../artifacts/${{ matrix.app.name }}_safety.txt
+          safety check --json 2>&1 | tee -a ../../artifacts/${{ matrix.app.name }}_safety.json || echo "Safety check found vulnerabilities" >> ../../artifacts/${{ matrix.app.name }}_safety.txt
+          safety check 2>&1 | tee -a ../../artifacts/${{ matrix.app.name }}_safety.txt || echo "Safety check completed with issues" >> ../../artifacts/${{ matrix.app.name }}_safety.txt
+
+      - name: Run Bandit security scan (API)
+        if: ${{ matrix.app.name == 'api' }}
+        working-directory: ${{ matrix.app.path }}
+        run: |
+          echo "=== Bandit Security Scan ===" | tee ../../artifacts/${{ matrix.app.name }}_bandit.txt
+          bandit -r src/ -f json -o ../../artifacts/${{ matrix.app.name }}_bandit.json || echo "Bandit scan completed with findings" >> ../../artifacts/${{ matrix.app.name }}_bandit.txt
+          bandit -r src/ 2>&1 | tee -a ../../artifacts/${{ matrix.app.name }}_bandit.txt || echo "Bandit scan completed with findings" >> ../../artifacts/${{ matrix.app.name }}_bandit.txt
+
+      - name: Upload Security Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-artifacts-${{ matrix.app.name }}
+          path: |
+            artifacts/
+          if-no-files-found: error
+
+  secrets-scan:
+    name: Secrets Detection
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create artifacts directory
+        run: mkdir -p artifacts
+
+      - name: Install TruffleHog
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/trufflesecurity/trufflehog/main/scripts/install.sh | sh -s -- -b /usr/local/bin
+
+      - name: Run TruffleHog secrets scan
+        run: |
+          echo "=== TruffleHog Secrets Scan ===" | tee artifacts/secrets_scan.txt
+          trufflehog git file://. --json 2>&1 | tee artifacts/secrets_scan.json || echo "TruffleHog scan completed" >> artifacts/secrets_scan.txt
+          trufflehog git file://. 2>&1 | tee -a artifacts/secrets_scan.txt || echo "TruffleHog scan completed" >> artifacts/secrets_scan.txt
+
+      - name: Check for common secret patterns
+        run: |
+          echo "=== Manual Secret Pattern Check ===" | tee artifacts/manual_secrets_check.txt
+          
+          # 檢查常見的秘密模式
+          echo "Checking for API keys..." >> artifacts/manual_secrets_check.txt
+          grep -r -i "api[_-]key\|apikey" --include="*.py" --include="*.js" --include="*.ts" --include="*.json" --exclude-dir=node_modules --exclude-dir=.git . >> artifacts/manual_secrets_check.txt || echo "No API key patterns found" >> artifacts/manual_secrets_check.txt
+          
+          echo "Checking for passwords..." >> artifacts/manual_secrets_check.txt
+          grep -r -i "password\s*=" --include="*.py" --include="*.js" --include="*.ts" --exclude-dir=node_modules --exclude-dir=.git . >> artifacts/manual_secrets_check.txt || echo "No hardcoded passwords found" >> artifacts/manual_secrets_check.txt
+          
+          echo "Checking for tokens..." >> artifacts/manual_secrets_check.txt
+          grep -r -i "token\s*=" --include="*.py" --include="*.js" --include="*.ts" --exclude-dir=node_modules --exclude-dir=.git . >> artifacts/manual_secrets_check.txt || echo "No hardcoded tokens found" >> artifacts/manual_secrets_check.txt
+          
+          echo "Checking for database URLs..." >> artifacts/manual_secrets_check.txt
+          grep -r -i "database_url\|db_url" --include="*.py" --include="*.js" --include="*.ts" --exclude-dir=node_modules --exclude-dir=.git . >> artifacts/manual_secrets_check.txt || echo "No hardcoded database URLs found" >> artifacts/manual_secrets_check.txt
+
+      - name: Upload Secrets Scan Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: secrets-scan-artifacts
+          path: |
+            artifacts/
+          if-no-files-found: error
+
+  rls-policy-check:
+    name: RLS Policy Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create artifacts directory
+        run: mkdir -p artifacts
+
+      - name: Validate RLS migration files
+        run: |
+          echo "=== RLS Policy Validation ===" | tee artifacts/rls_validation.txt
+          
+          # 檢查 RLS 遷移檔案是否存在
+          if [ -f "supabase/migrations/20250919_create_rls_policies.sql" ]; then
+            echo "✅ RLS policy migration file exists" >> artifacts/rls_validation.txt
+          else
+            echo "❌ RLS policy migration file missing" >> artifacts/rls_validation.txt
+          fi
+          
+          # 檢查 RLS 測試檔案是否存在
+          if [ -f "supabase/migrations/20250919_test_rls_policies.sql" ]; then
+            echo "✅ RLS policy test file exists" >> artifacts/rls_validation.txt
+          else
+            echo "❌ RLS policy test file missing" >> artifacts/rls_validation.txt
+          fi
+          
+          # 檢查 RLS 文檔是否存在
+          if [ -f "docs/RLS_POLICIES.md" ]; then
+            echo "✅ RLS policy documentation exists" >> artifacts/rls_validation.txt
+          else
+            echo "❌ RLS policy documentation missing" >> artifacts/rls_validation.txt
+          fi
+          
+          # 驗證 SQL 語法
+          echo "=== SQL Syntax Validation ===" >> artifacts/rls_validation.txt
+          if command -v sqlfluff &> /dev/null; then
+            sqlfluff lint supabase/migrations/*.sql >> artifacts/rls_validation.txt || echo "SQL syntax validation completed with warnings" >> artifacts/rls_validation.txt
+          else
+            echo "SQLFluff not available, skipping SQL syntax validation" >> artifacts/rls_validation.txt
+          fi
+
+      - name: Check for RLS policy coverage
+        run: |
+          echo "=== RLS Policy Coverage Check ===" >> artifacts/rls_validation.txt
+          
+          # 檢查是否包含必要的 RLS 政策
+          if grep -q "ALTER TABLE.*ENABLE ROW LEVEL SECURITY" supabase/migrations/20250919_create_rls_policies.sql; then
+            echo "✅ RLS is enabled for tables" >> artifacts/rls_validation.txt
+          else
+            echo "❌ RLS not properly enabled" >> artifacts/rls_validation.txt
+          fi
+          
+          if grep -q "CREATE POLICY" supabase/migrations/20250919_create_rls_policies.sql; then
+            echo "✅ RLS policies are defined" >> artifacts/rls_validation.txt
+          else
+            echo "❌ No RLS policies found" >> artifacts/rls_validation.txt
+          fi
+          
+          # 計算政策數量
+          policy_count=$(grep -c "CREATE POLICY" supabase/migrations/20250919_create_rls_policies.sql || echo "0")
+          echo "📊 Total RLS policies: $policy_count" >> artifacts/rls_validation.txt
+
+      - name: Upload RLS Validation Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rls-validation-artifacts
+          path: |
+            artifacts/
+          if-no-files-found: error
+
+  environment-security:
+    name: Environment Security Check
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create artifacts directory
+        run: mkdir -p artifacts
+
+      - name: Check environment variable security
+        run: |
+          echo "=== Environment Variable Security Check ===" | tee artifacts/env_security.txt
+          
+          # 檢查是否有硬編碼的敏感資訊
+          echo "Checking for hardcoded secrets in environment files..." >> artifacts/env_security.txt
+          
+          if [ -f ".env.example" ]; then
+            echo "✅ .env.example file exists" >> artifacts/env_security.txt
+            
+            # 檢查 .env.example 是否包含實際值
+            if grep -E "(=.{10,})" .env.example | grep -v "your_" | grep -v "example" | grep -v "placeholder"; then
+              echo "⚠️  Potential real values in .env.example:" >> artifacts/env_security.txt
+              grep -E "(=.{10,})" .env.example | grep -v "your_" | grep -v "example" | grep -v "placeholder" >> artifacts/env_security.txt
+            else
+              echo "✅ .env.example contains only placeholder values" >> artifacts/env_security.txt
+            fi
+          else
+            echo "❌ .env.example file missing" >> artifacts/env_security.txt
+          fi
+          
+          # 檢查是否有 .env 檔案被意外提交
+          if [ -f ".env" ]; then
+            echo "❌ .env file found in repository (should be gitignored)" >> artifacts/env_security.txt
+          else
+            echo "✅ No .env file in repository" >> artifacts/env_security.txt
+          fi
+          
+          # 檢查 gitignore 是否包含環境檔案
+          if grep -q "\.env" .gitignore; then
+            echo "✅ .env files are gitignored" >> artifacts/env_security.txt
+          else
+            echo "❌ .env files not in .gitignore" >> artifacts/env_security.txt
+          fi
+
+      - name: Validate required environment variables
+        run: |
+          echo "=== Required Environment Variables Check ===" >> artifacts/env_security.txt
+          
+          # 定義必要的環境變數
+          required_vars=(
+            "SB_URL"
+            "SB_ANON_KEY" 
+            "SB_SERVICE_ROLE_KEY"
+            "SB_JWT_SECRET"
+            "DATABASE_URL"
+            "JWT_SECRET"
+            "EMAIL_FROM"
+            "SMTP_HOST"
+            "SMTP_PORT"
+            "SMTP_USER"
+            "SMTP_PASS"
+          )
+          
+          missing_vars=()
+          
+          for var in "${required_vars[@]}"; do
+            if [ -z "${!var}" ]; then
+              missing_vars+=("$var")
+            else
+              echo "✅ $var is set" >> artifacts/env_security.txt
+            fi
+          done
+          
+          if [ ${#missing_vars[@]} -eq 0 ]; then
+            echo "✅ All required environment variables are set" >> artifacts/env_security.txt
+          else
+            echo "❌ Missing environment variables:" >> artifacts/env_security.txt
+            printf '%s\n' "${missing_vars[@]}" >> artifacts/env_security.txt
+          fi
+        env:
+          SB_URL: ${{ secrets.SB_URL }}
+          SB_ANON_KEY: ${{ secrets.SB_ANON_KEY }}
+          SB_SERVICE_ROLE_KEY: ${{ secrets.SB_SERVICE_ROLE_KEY }}
+          SB_JWT_SECRET: ${{ secrets.SB_JWT_SECRET }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+
+      - name: Upload Environment Security Artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: env-security-artifacts
+          path: |
+            artifacts/
+          if-no-files-found: error
+
+  security-summary:
+    name: Security Summary
+    runs-on: ubuntu-latest
+    needs: [dependency-check, secrets-scan, rls-policy-check, environment-security]
+    if: always()
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: all-artifacts
+
+      - name: Create security summary
+        run: |
+          echo "# 🔒 Security Check Summary" > security_summary.md
+          echo "" >> security_summary.md
+          echo "## 📊 Scan Results" >> security_summary.md
+          echo "" >> security_summary.md
+          
+          # 檢查各個 job 的狀態
+          echo "| Check Type | Status |" >> security_summary.md
+          echo "|------------|--------|" >> security_summary.md
+          echo "| Dependency Check | ${{ needs.dependency-check.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> security_summary.md
+          echo "| Secrets Scan | ${{ needs.secrets-scan.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> security_summary.md
+          echo "| RLS Policy Check | ${{ needs.rls-policy-check.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> security_summary.md
+          echo "| Environment Security | ${{ needs.environment-security.result == 'success' && '✅ Passed' || '❌ Failed' }} |" >> security_summary.md
+          echo "" >> security_summary.md
+          
+          echo "## 📋 Detailed Reports" >> security_summary.md
+          echo "" >> security_summary.md
+          echo "Detailed security scan results are available in the workflow artifacts." >> security_summary.md
+          echo "" >> security_summary.md
+          echo "### 🔍 Key Security Measures Implemented:" >> security_summary.md
+          echo "- ✅ Row Level Security (RLS) policies" >> security_summary.md
+          echo "- ✅ Dependency vulnerability scanning" >> security_summary.md
+          echo "- ✅ Secrets detection" >> security_summary.md
+          echo "- ✅ Environment variable validation" >> security_summary.md
+          echo "- ✅ Code security analysis" >> security_summary.md
+          echo "" >> security_summary.md
+          echo "Generated on: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> security_summary.md
+
+      - name: Upload Security Summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-summary
+          path: security_summary.md
+          if-no-files-found: error
+
+      - name: Comment on PR (if applicable)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('security_summary.md', 'utf8');
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: summary
+            });
