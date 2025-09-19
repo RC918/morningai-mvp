@@ -26,6 +26,9 @@ qrcode==8.2
 # Email
 Flask-Mail==0.10.0
 
+# API Documentation
+Flask-RESTX==1.3.0
+
 # Scheduling
 Flask-APScheduler==1.12.4
 
