@@ -108,8 +108,14 @@ def token_required(f):
                 return jsonify({"error": "Invalid token payload"}), 401
 
             # 檢查 JWT 是否在黑名單中
+            print(f"[TOKEN_REQUIRED] Checking blacklist for JTI: {jti}")
             if jti and JWTBlacklist.is_blacklisted(jti):
+                print(f"[TOKEN_REQUIRED] Token revoked: {jti}")
                 return jsonify({"error": "Token has been revoked"}), 401
+            elif not jti:
+                print(f"[TOKEN_REQUIRED] Warning: Token has no JTI")
+            else:
+                print(f"[TOKEN_REQUIRED] Token is valid: {jti}")
 
             # 將用戶信息添加到請求上下文
             request.current_user = User.query.get(user_id)
