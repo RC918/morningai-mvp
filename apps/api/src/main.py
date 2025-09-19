@@ -87,8 +87,8 @@ app.register_blueprint(tenant_bp, url_prefix="/api")
 app.register_blueprint(webhook_bp, url_prefix="/api")
 
 # 註冊 API 文檔
-from src.api_docs import docs_bp
-app.register_blueprint(docs_bp)
+from src.simple_docs import simple_docs_bp
+app.register_blueprint(simple_docs_bp)
 
 
 @app.route("/")
