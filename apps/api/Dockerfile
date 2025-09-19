@@ -16,6 +16,6 @@ RUN chmod +x /app/pre_deploy_script.sh || true
 # 設定 PYTHONPATH，讓 Python 能夠找到 src 模組
 ENV PYTHONPATH=/app
 
-# 設定啟動指令，使用 sh -c 來確保 $PORT 環境變數能被正確解析
-CMD sh -c 'gunicorn -w 2 -k gthread -b 0.0.0.0:$PORT src.main:app'
+# 設定啟動指令，使用 bash -lc 來確保 $PORT 環境變數能被正確解析
+CMD bash -lc "gunicorn -w 2 -k gthread -b 0.0.0.0:${PORT} src.main:app"
 
