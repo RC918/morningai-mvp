@@ -82,7 +82,7 @@ def run_all_migrations():
 
         # 執行所有遷移
         logger.info("Starting two-factor authentication column migration...")
-        migration_result = add_two_factor_columns()
+        migration_result = migrate_user_table()
         results.append(migration_result)
         logger.info(f"✅ Two-factor migration result: {migration_result}")
 
