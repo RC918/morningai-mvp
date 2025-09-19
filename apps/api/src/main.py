@@ -19,6 +19,8 @@ from src.routes.auth import auth_bp
 from src.routes.jwt_blacklist import jwt_blacklist_bp
 from src.routes.two_factor import two_factor_bp
 from src.routes.email_verification import email_verification_bp
+from src.routes.tenant import tenant_bp
+from src.routes.webhook import webhook_bp
 
 app = Flask(__name__)
 CORS(app)
@@ -58,6 +60,8 @@ app.register_blueprint(admin_bp, url_prefix="/api/admin")
 app.register_blueprint(two_factor_bp, url_prefix="/api")
 app.register_blueprint(jwt_blacklist_bp, url_prefix="/api")
 app.register_blueprint(email_verification_bp, url_prefix="/api")
+app.register_blueprint(tenant_bp, url_prefix="/api")
+app.register_blueprint(webhook_bp, url_prefix="/api")
 
 
 @app.route("/")
