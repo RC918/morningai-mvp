@@ -3,6 +3,7 @@ from functools import wraps
 import jwt
 from flask import current_app, jsonify, request
 
+from src.models.jwt_blacklist import JWTBlacklist
 from src.models.user import User
 
 
@@ -41,11 +42,8 @@ def require_role(required_role):
 
                 # 檢查 JWT 是否在黑名單中
                 jti = payload.get("jti")
-                if jti:
-                    from src.models.jwt_blacklist import JWTBlacklist
-
-                    if JWTBlacklist.is_blacklisted(jti):
-                        return jsonify({"error": "Token has been revoked"}), 401
+                if jti and JWTBlacklist.is_blacklisted(jti):
+                    return jsonify({"error": "Token has been revoked"}), 401
 
                 # 獲取用戶角色
                 user_role = payload.get("role")
@@ -110,11 +108,8 @@ def token_required(f):
                 return jsonify({"error": "Invalid token payload"}), 401
 
             # 檢查 JWT 是否在黑名單中
-            if jti:
-                from src.models.jwt_blacklist import JWTBlacklist
-
-                if JWTBlacklist.is_blacklisted(jti):
-                    return jsonify({"error": "Token has been revoked"}), 401
+            if jti and JWTBlacklist.is_blacklisted(jti):
+                return jsonify({"error": "Token has been revoked"}), 401
 
             # 將用戶信息添加到請求上下文
             request.current_user = User.query.get(user_id)

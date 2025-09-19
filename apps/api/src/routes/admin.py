@@ -1,5 +1,6 @@
 from flask import Blueprint, jsonify, request
 
+from src.models.jwt_blacklist import JWTBlacklist
 from src.models.user import User, db
 from src.routes.auth import admin_required, token_required
 
@@ -147,3 +148,55 @@ def update_user_status(current_user, user_id):
             jsonify({"error": "Failed to update user status", "details": str(e)}),
             500,
         )
+
+
+@admin_bp.route("/blacklist", methods=["GET"])
+@token_required
+@admin_required
+def get_blacklist(current_user):
+    """獲取黑名單列表（僅管理員）"""
+    try:
+        page = request.args.get("page", 1, type=int)
+        per_page = request.args.get("per_page", 20, type=int)
+
+        # 清理過期的 token
+        JWTBlacklist.cleanup_expired_tokens()
+
+        # 分頁查詢
+        blacklist = JWTBlacklist.query.order_by(JWTBlacklist.blacklisted_at.desc()).paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+
+        return (
+            jsonify(
+                {
+                    "blacklist": [token.to_dict() for token in blacklist.items],
+                    "total": blacklist.total,
+                    "pages": blacklist.pages,
+                    "current_page": page,
+                    "per_page": per_page,
+                }
+            ),
+            200,
+        )
+
+    except Exception as e:
+        return jsonify({"message": "獲取黑名單失敗", "error": str(e)}), 500
+
+
+@admin_bp.route("/blacklist/cleanup", methods=["POST"])
+@token_required
+@admin_required
+def cleanup_blacklist(current_user):
+    """清理過期的黑名單 token（僅管理員）"""
+    try:
+        cleaned_count = JWTBlacklist.cleanup_expired_tokens()
+        return (
+            jsonify(
+                {"message": f"已清理 {cleaned_count} 個過期 token", "cleaned_count": cleaned_count}
+            ),
+            200,
+        )
+
+    except Exception as e:
+        return jsonify({"message": "清理黑名單失敗", "error": str(e)}), 500

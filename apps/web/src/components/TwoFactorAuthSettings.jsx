@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,13 +16,7 @@ const TwoFactorAuthSettings = () => {
 
   const API_URL = import.meta.env.VITE_API_URL || 'https://morningai-mvp.onrender.com/api';
 
-  useEffect(() => {
-    if (token) {
-      fetchTwoFactorStatus();
-    }
-  }, [token]);
-
-  const fetchTwoFactorStatus = async () => {
+    const fetchTwoFactorStatus = useCallback(async () => {
     try {
       const response = await fetch(`${API_URL}/auth/2fa/status`, {
         headers: {
@@ -39,7 +33,15 @@ const TwoFactorAuthSettings = () => {
       console.error('Error fetching 2FA status:', error);
       setMessage('獲取 2FA 狀態時發生錯誤');
     }
-  };
+  }, [token, API_URL]);
+
+  useEffect(() => {
+    if (token) {
+      fetchTwoFactorStatus();
+    }
+  }, [token, fetchTwoFactorStatus]);
+
+
 
   const handleSetup2FA = async () => {
     setLoading(true);

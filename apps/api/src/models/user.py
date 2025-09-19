@@ -1,7 +1,7 @@
 from datetime import datetime
-
 import pyotp
 from werkzeug.security import check_password_hash, generate_password_hash
+from sqlalchemy.orm import relationship
 
 from src.database import db
 
@@ -18,8 +18,16 @@ class User(db.Model):
     # 2FA 相關欄位
     two_factor_secret = db.Column(db.String(32), nullable=True)
     two_factor_enabled = db.Column(db.Boolean, default=False)
+    
+    # 多租戶相關欄位
+    tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=True)
+    tenant_role = db.Column(db.String(50), default='member', nullable=False)  # owner, admin, member
+    
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # 關聯
+    tenant = relationship("Tenant", back_populates="users")
 
     def __repr__(self):
         return f"<User {self.username}>"
@@ -86,3 +94,13 @@ class User(db.Model):
             data["two_factor_secret"] = self.two_factor_secret
 
         return data
+
+
+    tokens_valid_since = db.Column(db.DateTime, nullable=True)
+
+
+
+    def invalidate_all_tokens(self):
+        """使所有舊 token 失效"""
+        self.tokens_valid_since = datetime.utcnow()
+
