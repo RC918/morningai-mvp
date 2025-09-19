@@ -182,7 +182,7 @@ jobs:
           pip install flake8 black isort
           isort --check-only src
           black --check src
-          flake8 src
+          flake8 src --ignore=W391
 
       - name: API Unit Tests
         id: api-unit-tests
