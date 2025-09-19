@@ -1,48 +1,98 @@
 name: Release
+
 on:
   push:
     tags: [ "v*.*.*" ]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   release_api:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    environment: staging
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # Required for git log
+      
+      - name: Preflight (Render secrets)
+        run: |
+          test -n "${{ secrets.RENDER_SERVICE_ID }}" || (echo "RENDER_SERVICE_ID missing" && exit 1)
+          test -n "${{ secrets.RENDER_API_KEY }}"   || (echo "RENDER_API_KEY missing" && exit 1)
+      
       - name: Generate Release Notes
         run: |
           git fetch --prune --unshallow --tags || true
           latest_tag=$(git describe --tags --abbrev=0 || echo "")
           if [ -z "$latest_tag" ]; then range=""; else range="$latest_tag..HEAD"; fi
           git log --pretty=format:"* %h %s" $range > CHANGELOG_PART.md
+      
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
           body_path: CHANGELOG_PART.md
+      
       - name: Deploy to Render
         uses: johnbeynon/render-deploy-action@v0.0.1
         with:
           service-id: ${{ secrets.RENDER_SERVICE_ID }}
           api-key: ${{ secrets.RENDER_API_KEY }}
+      
+      - name: Smoke test (API health)
+        if: ${{ always() }}
+        env: { API_URL: ${{ vars.API_URL }} }
+        run: |
+          for i in 1 2 3 4 5; do
+            echo "Try #$i"; curl -sS -i "${API_URL}/health" | tee health_after_release.txt
+            grep " 200 " -q health_after_release.txt && exit 0
+            sleep 8
+          done
+          echo "Health check after release did not return 200"; exit 1
+      
+      - name: Upload API artifacts
+        uses: actions/upload-artifact@v4
+        if: ${{ always() }}
+        with:
+          name: evidence-release-api
+          path: |
+            CHANGELOG_PART.md
+            health_after_release.txt
 
   release_web:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Preflight (Vercel secrets)
+        run: |
+          test -n "${{ secrets.VERCEL_TOKEN }}"     || (echo "VERCEL_TOKEN missing" && exit 1)
+          test -n "${{ secrets.VERCEL_ORG_ID }}"    || (echo "VERCEL_ORG_ID missing" && exit 1)
+          test -n "${{ secrets.VERCEL_PROJECT_ID }}"|| (echo "VERCEL_PROJECT_ID missing" && exit 1)
+      
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+      
       - name: Build Web
         working-directory: apps/web
         run: |
           npm ci
           npm run build
+      
       - name: Deploy to Vercel
         uses: amondnet/vercel-action@v20
         with:
@@ -64,4 +114,3 @@ jobs:
           SLACK_ICON_EMOJI: ':rocket:'
           SLACK_COLOR: '#36a64f'
           SLACK_MESSAGE: '🚀 New release ${{ github.ref_name }} deployed successfully to Render and Vercel!'
-

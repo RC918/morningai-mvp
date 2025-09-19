@@ -1,9 +1,19 @@
 name: CI Check
+
 on:
   pull_request:
     branches: [ main ]
   push:
     branches: [ feature/* ]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   env-check:
     runs-on: ubuntu-latest
@@ -23,6 +33,10 @@ jobs:
         working-directory: apps/api
         run: pytest -q -k "health or blacklist" --maxfail=1 --disable-warnings | tee pytest.txt
 
+      - name: Assert API_URL exists
+        run: |
+          test -n "${{ vars.API_URL }}" || (echo "API_URL not set in environment 'staging'" && exit 1)
+
       - name: Health check (Render staging)
         env: { API_URL: ${{ vars.API_URL }} }
         run: |
@@ -39,8 +53,8 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: evidence-ci
+          if-no-files-found: error
           path: |
-            pytest.txt
+            apps/api/pytest.txt
             health.txt
             apps/web/eslint.txt
-
