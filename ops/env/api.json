@@ -1,7 +1,10 @@
 {
+  "name": "API Environment Variables",
+  "description": "API 後端必要和可選環境變數配置",
+  "environment": "api",
   "required": [
     "DATABASE_URL",
-    "JWT_SECRET_KEY",
+    "JWT_SECRET",
     "SB_URL",
     "SB_SERVICE_ROLE_KEY",
     "SB_JWT_SECRET",
@@ -15,7 +18,35 @@
     "REDIS_URL",
     "SECURITY_PASSWORD_SALT",
     "OPENAI_API_KEY",
-    "OPENAI_API_BASE"
+    "OPENAI_API_BASE",
+    "NOTION_EVIDENCE_DB_ID"
   ],
-  "description": "API 後端必要和可選環境變數配置"
+  "deployment_secrets": [
+    "RENDER_API_KEY",
+    "RENDER_SERVICE_ID"
+  ],
+  "validation_rules": {
+    "JWT_SECRET": {
+      "min_length": 32,
+      "description": "JWT secret must be at least 32 characters long"
+    },
+    "DATABASE_URL": {
+      "pattern": "^postgresql://.*",
+      "description": "Must be a valid PostgreSQL connection URL"
+    },
+    "SB_URL": {
+      "pattern": "^https://.*\\.supabase\\.co$",
+      "description": "Must be a valid Supabase project URL"
+    },
+    "EMAIL_FROM": {
+      "pattern": "^[^@]+@[^@]+\\.[^@]+$",
+      "description": "Must be a valid email address"
+    },
+    "SMTP_PORT": {
+      "type": "integer",
+      "min": 1,
+      "max": 65535,
+      "description": "Must be a valid port number"
+    }
+  }
 }

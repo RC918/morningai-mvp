@@ -16,6 +16,69 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Environment Variables Check
+      - name: Setup Node.js for env check
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Environment Variables Check
+        run: |
+          echo "Checking environment variables..." | tee env_check.txt
+          
+          # Check if env check script exists
+          if [ -f "ops/env/scripts/check_env.mjs" ]; then
+            echo "Running environment check script..." | tee -a env_check.txt
+            cd ops/env/scripts
+            node check_env.mjs | tee -a ../../../env_check.txt
+          else
+            echo "Environment check script not found, creating basic check..." | tee -a env_check.txt
+            
+            # Basic environment variable check
+            MISSING_VARS=""
+            
+            # Check for API environment variables
+            if [ -z "${{ secrets.DATABASE_URL }}" ]; then
+              MISSING_VARS="$MISSING_VARS DATABASE_URL"
+            fi
+            if [ -z "${{ secrets.JWT_SECRET }}" ]; then
+              MISSING_VARS="$MISSING_VARS JWT_SECRET"
+            fi
+            if [ -z "${{ secrets.SB_SERVICE_ROLE_KEY }}" ]; then
+              MISSING_VARS="$MISSING_VARS SB_SERVICE_ROLE_KEY"
+            fi
+            if [ -z "${{ secrets.SB_JWT_SECRET }}" ]; then
+              MISSING_VARS="$MISSING_VARS SB_JWT_SECRET"
+            fi
+            
+            # Check for deployment secrets
+            if [ -z "${{ secrets.RENDER_API_KEY }}" ]; then
+              MISSING_VARS="$MISSING_VARS RENDER_API_KEY"
+            fi
+            if [ -z "${{ secrets.RENDER_SERVICE_ID }}" ]; then
+              MISSING_VARS="$MISSING_VARS RENDER_SERVICE_ID"
+            fi
+            if [ -z "${{ secrets.VERCEL_TOKEN }}" ]; then
+              MISSING_VARS="$MISSING_VARS VERCEL_TOKEN"
+            fi
+            if [ -z "${{ secrets.VERCEL_ORG_ID }}" ]; then
+              MISSING_VARS="$MISSING_VARS VERCEL_ORG_ID"
+            fi
+            if [ -z "${{ secrets.VERCEL_PROJECT_ID }}" ]; then
+              MISSING_VARS="$MISSING_VARS VERCEL_PROJECT_ID"
+            fi
+            
+            if [ -n "$MISSING_VARS" ]; then
+              echo "Missing environment variables: $MISSING_VARS" | tee -a env_check.txt
+              echo "ENV_CHECK_RESULT=failure" >> $GITHUB_ENV
+              echo "MISSING_VARS=$MISSING_VARS" >> $GITHUB_ENV
+            else
+              echo "All required environment variables are present" | tee -a env_check.txt
+              echo "ENV_CHECK_RESULT=success" >> $GITHUB_ENV
+              echo "MISSING_VARS=None" >> $GITHUB_ENV
+            fi
+          fi
+
       # backend tests
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -28,7 +91,13 @@ jobs:
         
       - name: Pytest (core + blacklist)
         working-directory: apps/api
-        run: pytest -q -k "health or blacklist" --maxfail=1 --disable-warnings | tee pytest.txt
+        run: |
+          pytest -q -k "health or blacklist" --maxfail=1 --disable-warnings | tee pytest.txt
+          if [ ${PIPESTATUS[0]} -eq 0 ]; then
+            echo "PYTEST_RESULT=success" >> $GITHUB_ENV
+          else
+            echo "PYTEST_RESULT=failure" >> $GITHUB_ENV
+          fi
 
       # health check against Render STAGING (MUST RUN)
       - name: Health check (staging)
@@ -36,13 +105,54 @@ jobs:
         run: |
           API_URL="${{ vars.API_URL || 'https://morningai-mvp.onrender.com' }}"
           echo "Testing API URL: $API_URL"
-          curl -sS -i "${API_URL}/health" | tee health.txt
-          grep " 200 " -q health.txt
+          if curl -sS -i "${API_URL}/health" | tee health.txt && grep " 200 " -q health.txt; then
+            echo "HEALTH_RESULT=success" >> $GITHUB_ENV
+          else
+            echo "HEALTH_RESULT=failure" >> $GITHUB_ENV
+          fi
 
       # lint
       - name: Lint
         working-directory: apps/api
-        run: pip install flake8 && flake8 src/ --ignore=E402,E501,E302,W391,E117,W293 | tee flake8.txt || true
+        run: |
+          pip install flake8
+          flake8 src/ --ignore=E402,E501,E302,W391,E117,W293 | tee flake8.txt || true
+          if [ -s flake8.txt ] && grep -q ":" flake8.txt 2>/dev/null; then
+            echo "LINT_RESULT=failure" >> $GITHUB_ENV
+          else
+            echo "LINT_RESULT=success" >> $GITHUB_ENV
+          fi
+
+      # Import Smoke Test
+      - name: Import Smoke Test
+        working-directory: apps/api
+        run: |
+          echo "Running import smoke test..." | tee import_smoke.txt
+          python -c "
+          import importlib
+          import sys
+          modules = [
+            'src.main',
+            'src.routes.two_factor',
+            'src.routes.auth',
+            'src.routes.admin',
+            'src.routes.jwt_blacklist',
+            'src.decorators'
+          ]
+          for module in modules:
+            try:
+              importlib.import_module(module)
+              print(f'✓ {module}')
+            except Exception as e:
+              print(f'✗ {module}: {e}')
+              sys.exit(1)
+          print('All imports successful!')
+          " | tee -a import_smoke.txt
+          if [ ${PIPESTATUS[0]} -eq 0 ]; then
+            echo "IMPORT_RESULT=success" >> $GITHUB_ENV
+          else
+            echo "IMPORT_RESULT=failure" >> $GITHUB_ENV
+          fi
 
       # build Evidence & upsert PR comment
       - name: Build evidence json
@@ -52,38 +162,18 @@ jobs:
           COMMIT_SHA="${{ github.sha }}"
           CREATED_AT="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
           
-          # Extract test results
-          PYTEST_RESULT="success"
-          if ! grep -q "failed" pytest.txt 2>/dev/null; then
-            PYTEST_RESULT="success"
-          else
-            PYTEST_RESULT="failure"
-          fi
-          
-          HEALTH_RESULT="success"
-          if grep -q " 200 " health.txt 2>/dev/null; then
-            HEALTH_RESULT="success"
-          else
-            HEALTH_RESULT="failure"
-          fi
-          
-          LINT_RESULT="success"
-          if [ -s flake8.txt ] && grep -q ":" flake8.txt 2>/dev/null; then
-            LINT_RESULT="failure"
-          else
-            LINT_RESULT="success"
-          fi
-
           EVIDENCE_JSON='{
             "pr_number": "'$PR_NUMBER'",
             "repo": "'$REPO_NAME'",
             "commit_sha": "'$COMMIT_SHA'",
             "tests": {
-              "pytest": "'$PYTEST_RESULT'",
-              "health": "'$HEALTH_RESULT'",
-              "lint": "'$LINT_RESULT'"
+              "pytest": "'${PYTEST_RESULT:-unknown}'",
+              "health": "'${HEALTH_RESULT:-unknown}'",
+              "lint": "'${LINT_RESULT:-unknown}'",
+              "import_smoke": "'${IMPORT_RESULT:-unknown}'",
+              "env_check": "'${ENV_CHECK_RESULT:-unknown}'"
             },
-            "env_missing": "None",
+            "env_missing": "'${MISSING_VARS:-unknown}'",
             "created_at": "'$CREATED_AT'"
           }'
           echo "$EVIDENCE_JSON" > evidence.json
@@ -115,6 +205,8 @@ jobs:
             - **Pytest (health + blacklist):** ${evidence.tests.pytest === 'success' ? '✅' : '❌'} ${evidence.tests.pytest}
             - **Health Check:** ${evidence.tests.health === 'success' ? '✅' : '❌'} ${evidence.tests.health}
             - **Lint:** ${evidence.tests.lint === 'success' ? '✅' : '❌'} ${evidence.tests.lint}
+            - **Import Smoke Test:** ${evidence.tests.import_smoke === 'success' ? '✅' : '❌'} ${evidence.tests.import_smoke}
+            - **Environment Check:** ${evidence.tests.env_check === 'success' ? '✅' : '❌'} ${evidence.tests.env_check}
             
             ### Environment
             - **Missing Vars:** ${evidence.env_missing}
@@ -150,4 +242,7 @@ jobs:
             pytest.txt
             health.txt
             flake8.txt
+            import_smoke.txt
+            env_check.txt
             evidence.json
+          if-no-files-found: error

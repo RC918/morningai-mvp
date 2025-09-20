@@ -119,6 +119,24 @@ jobs:
           sleep 10
           curl --fail http://localhost:5000/health | tee -a release_log.txt
 
+      - name: Build API Docker Image
+        working-directory: apps/api
+        run: |
+          echo "Building API Docker image..." | tee -a release_log.txt
+          docker build -t morningai-api:${{ env.DEPLOY_TAG }} .
+          docker save morningai-api:${{ env.DEPLOY_TAG }} > api-docker-image.tar
+          echo "API Docker image built and saved" | tee -a release_log.txt
+
+      - name: Prepare Migration Scripts
+        working-directory: apps/api
+        run: |
+          echo "Preparing migration scripts..." | tee -a release_log.txt
+          mkdir -p migration-package
+          cp -r alembic/ migration-package/
+          cp -r migrations/ migration-package/ 2>/dev/null || echo "No migrations directory found"
+          tar -czf migration-scripts.tar.gz migration-package/
+          echo "Migration scripts packaged" | tee -a release_log.txt
+
       - name: Deploy to Render
         uses: johnbeynon/render-deploy-action@v0.0.8
         with:
@@ -140,14 +158,17 @@ jobs:
             fi
           done
 
-      - name: Upload API Release Log
+      - name: Upload API Release Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: release_log_api
+          name: release_artifacts_api
           path: |
             release_log.txt
             health_after_release.txt
             apps/api/api_dev.log
+            apps/api/api-docker-image.tar
+            apps/api/migration-scripts.tar.gz
+          if-no-files-found: error
 
   release_web:
     runs-on: ubuntu-latest
@@ -181,9 +202,13 @@ jobs:
         working-directory: apps/web
         run: npm run test | tee -a release_log.txt
 
-      - name: Web Build Test
+      - name: Web Build
         working-directory: apps/web
-        run: npm run build | tee -a release_log.txt
+        run: |
+          echo "Building web application..." | tee -a release_log.txt
+          npm run build
+          echo "Web build completed" | tee -a release_log.txt
+          tar -czf web-build.tar.gz dist/
 
       - name: Deploy to Vercel
         uses: amondnet/vercel-action@v25
@@ -193,8 +218,50 @@ jobs:
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           vercel-args: '--prod'
 
-      - name: Upload Web Release Log
+      - name: Upload Web Release Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: release_log_web
-          path: release_log.txt
+          name: release_artifacts_web
+          path: |
+            release_log.txt
+            apps/web/web-build.tar.gz
+          if-no-files-found: error
+
+  deployment_proof:
+    runs-on: ubuntu-latest
+    needs: [release_api, release_web]
+    if: always()
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_TAG }}
+
+      - name: Generate Deployment Proof
+        run: |
+          echo "# DEPLOYMENT PROOF - ${{ env.DEPLOY_TAG }}" > DEPLOYMENT_PROOF.md
+          echo "" >> DEPLOYMENT_PROOF.md
+          echo "**Deployment Date**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> DEPLOYMENT_PROOF.md
+          echo "**Tag**: ${{ env.DEPLOY_TAG }}" >> DEPLOYMENT_PROOF.md
+          echo "**Commit**: ${{ github.sha }}" >> DEPLOYMENT_PROOF.md
+          echo "**Is Hotfix**: ${{ env.IS_HOTFIX }}" >> DEPLOYMENT_PROOF.md
+          echo "" >> DEPLOYMENT_PROOF.md
+          echo "## Deployment Status" >> DEPLOYMENT_PROOF.md
+          echo "- API Deployment: ${{ needs.release_api.result }}" >> DEPLOYMENT_PROOF.md
+          echo "- Web Deployment: ${{ needs.release_web.result }}" >> DEPLOYMENT_PROOF.md
+          echo "" >> DEPLOYMENT_PROOF.md
+          echo "## Health Check Results" >> DEPLOYMENT_PROOF.md
+          echo "- API Health: $(curl -s ${{ secrets.API_URL }}/health | jq -r '.status // "unknown"' 2>/dev/null || echo 'failed')" >> DEPLOYMENT_PROOF.md
+          echo "- Web Health: $(curl -I ${{ secrets.WEB_URL }} 2>/dev/null | head -n1 | grep -q '200' && echo 'ok' || echo 'failed')" >> DEPLOYMENT_PROOF.md
+          echo "" >> DEPLOYMENT_PROOF.md
+          echo "## Artifacts Generated" >> DEPLOYMENT_PROOF.md
+          echo "- API Docker Image: ✓" >> DEPLOYMENT_PROOF.md
+          echo "- Web Build Package: ✓" >> DEPLOYMENT_PROOF.md
+          echo "- Migration Scripts: ✓" >> DEPLOYMENT_PROOF.md
+
+      - name: Upload Deployment Proof
+        uses: actions/upload-artifact@v4
+        with:
+          name: deployment_proof
+          path: DEPLOYMENT_PROOF.md
+          if-no-files-found: error

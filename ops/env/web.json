@@ -1,4 +1,7 @@
 {
+  "name": "Web Environment Variables",
+  "description": "Web 前端必要和可選環境變數配置",
+  "environment": "web",
   "required": [
     "VITE_API_BASE_URL",
     "VITE_SB_URL",
@@ -6,7 +9,37 @@
   ],
   "optional": [
     "VITE_APP_ENV",
-    "VITE_DEBUG"
+    "VITE_DEBUG",
+    "VITE_APP_NAME",
+    "VITE_APP_VERSION",
+    "VITE_ENABLE_ANALYTICS",
+    "VITE_SENTRY_DSN"
   ],
-  "description": "Web 前端必要和可選環境變數配置"
+  "deployment_secrets": [
+    "VERCEL_TOKEN",
+    "VERCEL_ORG_ID",
+    "VERCEL_PROJECT_ID"
+  ],
+  "validation_rules": {
+    "VITE_SB_URL": {
+      "pattern": "^https://.*\\.supabase\\.co$",
+      "description": "Must be a valid Supabase project URL"
+    },
+    "VITE_SB_ANON_KEY": {
+      "min_length": 100,
+      "description": "Supabase anonymous key must be at least 100 characters"
+    },
+    "VITE_API_BASE_URL": {
+      "pattern": "^https://.*",
+      "description": "Must be a valid HTTPS URL for the API endpoint"
+    },
+    "VITE_ENABLE_ANALYTICS": {
+      "type": "boolean",
+      "description": "Must be 'true' or 'false'"
+    }
+  },
+  "build_time_variables": {
+    "description": "These variables are embedded at build time and are public",
+    "security_note": "Do not include sensitive information in VITE_ prefixed variables"
+  }
 }
