@@ -18,6 +18,30 @@ import { AuthProvider, useAuth } from './hooks/useAuth';
 import { queryClient } from './lib/queryClient';
 import './App.css';
 
+const DashboardLayout = () => {
+  const { user, logout } = useAuth();
+  return (
+    <div className="flex h-screen">
+      <Sidebar user={user} onLogout={logout} />
+      <div className="flex-1 overflow-auto">
+        <Dashboard />
+      </div>
+    </div>
+  );
+};
+
+const LayoutWithSidebar = ({ component: Component }) => {
+  const { user, logout } = useAuth();
+  return (
+    <div className="flex h-screen">
+      <Sidebar user={user} onLogout={logout} />
+      <div className="flex-1 overflow-auto">
+        <Component />
+      </div>
+    </div>
+  );
+};
+
 const PrivateRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
 
@@ -42,35 +66,67 @@ function App() {
             <Route path="/register" element={<RegisterPage />} />
             <Route 
               path="/dashboard" 
-              element={<PrivateRoute><Sidebar /><Dashboard /></PrivateRoute>}
+              element={
+                <PrivateRoute>
+                  <DashboardLayout />
+                </PrivateRoute>
+              }
             />
             <Route 
               path="/settings/2fa" 
-              element={<PrivateRoute><Sidebar /><TwoFactorAuthSettings /></PrivateRoute>}
+              element={
+                <PrivateRoute>
+                  <LayoutWithSidebar component={TwoFactorAuthSettings} />
+                </PrivateRoute>
+              }
             />
             <Route 
               path="/admin/users" 
-              element={<PrivateRoute><Sidebar /><UserManagement /></PrivateRoute>}
+              element={
+                <PrivateRoute>
+                  <LayoutWithSidebar component={UserManagement} />
+                </PrivateRoute>
+              }
             />
             <Route 
               path="/strategy" 
-              element={<PrivateRoute><Sidebar /><StrategyManagement /></PrivateRoute>}
+              element={
+                <PrivateRoute>
+                  <LayoutWithSidebar component={StrategyManagement} />
+                </PrivateRoute>
+              }
             />
             <Route 
               path="/decisions" 
-              element={<PrivateRoute><Sidebar /><DecisionApproval /></PrivateRoute>}
+              element={
+                <PrivateRoute>
+                  <LayoutWithSidebar component={DecisionApproval} />
+                </PrivateRoute>
+              }
             />
             <Route 
               path="/history" 
-              element={<PrivateRoute><Sidebar /><HistoryAnalysis /></PrivateRoute>}
+              element={
+                <PrivateRoute>
+                  <LayoutWithSidebar component={HistoryAnalysis} />
+                </PrivateRoute>
+              }
             />
             <Route 
               path="/cost" 
-              element={<PrivateRoute><Sidebar /><CostAnalysis /></PrivateRoute>}
+              element={
+                <PrivateRoute>
+                  <LayoutWithSidebar component={CostAnalysis} />
+                </PrivateRoute>
+              }
             />
             <Route 
               path="/settings" 
-              element={<PrivateRoute><Sidebar /><SystemSettings /></PrivateRoute>}
+              element={
+                <PrivateRoute>
+                  <LayoutWithSidebar component={SystemSettings} />
+                </PrivateRoute>
+              }
             />
             <Route 
               path="/" 

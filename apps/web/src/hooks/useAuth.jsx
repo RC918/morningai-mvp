@@ -22,7 +22,8 @@ export const AuthProvider = ({ children }) => {
       }
 
       try {
-        const response = await fetch(`${API_URL}/verify`, {
+        // 使用 /profile 端點驗證 token 有效性
+        const response = await fetch(`${API_URL}/profile`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -32,16 +33,24 @@ export const AuthProvider = ({ children }) => {
           const userData = await response.json();
           setUser(userData.user);
           setIsAuthenticated(true);
+        } else if (response.status === 401) {
+          // Token 無效或已被撤銷
+          console.log('Token 已失效或被撤銷');
+          localStorage.removeItem('auth_token');
+          setToken(null);
+          setIsAuthenticated(false);
+          setUser(null);
         } else {
+          // 其他錯誤
+          console.error('認證檢查失敗:', response.status);
           localStorage.removeItem('auth_token');
           setToken(null);
           setIsAuthenticated(false);
           setUser(null);
         }
       } catch (error) {
-        console.error('認證檢查失敗:', error);
-        localStorage.removeItem('auth_token');
-        setToken(null);
+        console.error('認證檢查網路錯誤:', error);
+        // 網路錯誤時不清除 token，允許離線使用
         setIsAuthenticated(false);
         setUser(null);
       } finally {
@@ -50,7 +59,16 @@ export const AuthProvider = ({ children }) => {
     };
 
     checkAuth();
-  }, [token, API_URL]);
+
+    // 設置定期檢查 token 有效性（每 5 分鐘）
+    const interval = setInterval(() => {
+      if (token && isAuthenticated) {
+        checkAuth();
+      }
+    }, 5 * 60 * 1000); // 5 分鐘
+
+    return () => clearInterval(interval);
+  }, [token, API_URL, isAuthenticated]);
 
   const login = async (email, password, otp = null) => {
     setLoading(true);
@@ -83,12 +101,29 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('auth_token');
-    setToken(null);
-    setUser(null);
-    setIsAuthenticated(false);
-    navigate('/login');
+  const logout = async () => {
+    try {
+      // 調用後端登出 API 將 token 加入黑名單
+      if (token) {
+        await fetch(`${API_URL}/auth/logout`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+      }
+    } catch (error) {
+      console.error('登出 API 調用失敗:', error);
+      // 即使 API 調用失敗，仍然清除本地狀態
+    } finally {
+      // 清除本地狀態
+      localStorage.removeItem('auth_token');
+      setToken(null);
+      setUser(null);
+      setIsAuthenticated(false);
+      navigate('/login');
+    }
   };
 
   return (
