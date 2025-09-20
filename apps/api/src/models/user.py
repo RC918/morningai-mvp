@@ -1,13 +1,14 @@
 from datetime import datetime
+
 import pyotp
-from werkzeug.security import check_password_hash, generate_password_hash
 from sqlalchemy.orm import relationship
+from werkzeug.security import check_password_hash, generate_password_hash
 
 from src.database import db
 
 
 class User(db.Model):
-    __tablename__ = 'users'
+    __tablename__ = "users"
     __table_args__ = {"extend_existing": True}
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
@@ -20,14 +21,18 @@ class User(db.Model):
     two_factor_secret = db.Column(db.String(32), nullable=True)
     two_factor_enabled = db.Column(db.Boolean, default=False)
     two_factor_backup_codes = db.Column(db.Text, nullable=True)
-    
+
     # 多租戶相關欄位
-    tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=True)
-    tenant_role = db.Column(db.String(50), default='member', nullable=False)  # owner, admin, member
-    
+    tenant_id = db.Column(db.Integer, db.ForeignKey("tenants.id"), nullable=True)
+    tenant_role = db.Column(
+        db.String(50), default="member", nullable=False
+    )  # owner, admin, member
+
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
     # 關聯
     tenant = relationship("Tenant", back_populates="users")
 
@@ -97,12 +102,8 @@ class User(db.Model):
 
         return data
 
-
     tokens_valid_since = db.Column(db.DateTime, nullable=True)
-
-
 
     def invalidate_all_tokens(self):
         """使所有舊 token 失效"""
         self.tokens_valid_since = datetime.utcnow()
-

@@ -5,7 +5,7 @@
 
 from flask import Blueprint, render_template_string
 
-simple_docs_bp = Blueprint('simple_docs', __name__)
+simple_docs_bp = Blueprint("simple_docs", __name__)
 
 # 簡單的 HTML 文檔模板
 DOCS_TEMPLATE = """
@@ -124,12 +124,14 @@ curl https://morningai-mvp.onrender.com/api/admin/users \\
 </html>
 """
 
-@simple_docs_bp.route('/docs')
+
+@simple_docs_bp.route("/docs")
 def api_docs():
     """API 文檔頁面"""
     return render_template_string(DOCS_TEMPLATE)
 
-@simple_docs_bp.route('/docs/')
+
+@simple_docs_bp.route("/docs/")
 def api_docs_slash():
     """API 文檔頁面（帶斜線）"""
     return render_template_string(DOCS_TEMPLATE)

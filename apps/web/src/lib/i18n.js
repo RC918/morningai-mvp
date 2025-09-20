@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState } from 'react';
 
 // 支援的語言列表
 export const SUPPORTED_LANGUAGES = {

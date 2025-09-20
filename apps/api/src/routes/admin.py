@@ -90,7 +90,9 @@ def update_user_role(current_user, user_id):
         db.session.commit()
 
         return (
-            jsonify({"message": "User role updated successfully", "user": user.to_dict()}),
+            jsonify(
+                {"message": "User role updated successfully", "user": user.to_dict()}
+            ),
             200,
         )
 
@@ -163,9 +165,9 @@ def get_blacklist(current_user):
         JWTBlacklist.cleanup_expired_tokens()
 
         # 分頁查詢
-        blacklist = JWTBlacklist.query.order_by(JWTBlacklist.blacklisted_at.desc()).paginate(
-            page=page, per_page=per_page, error_out=False
-        )
+        blacklist = JWTBlacklist.query.order_by(
+            JWTBlacklist.blacklisted_at.desc()
+        ).paginate(page=page, per_page=per_page, error_out=False)
 
         return (
             jsonify(
@@ -193,7 +195,10 @@ def cleanup_blacklist(current_user):
         cleaned_count = JWTBlacklist.cleanup_expired_tokens()
         return (
             jsonify(
-                {"message": f"已清理 {cleaned_count} 個過期 token", "cleaned_count": cleaned_count}
+                {
+                    "message": f"已清理 {cleaned_count} 個過期 token",
+                    "cleaned_count": cleaned_count,
+                }
             ),
             200,
         )

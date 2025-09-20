@@ -1,9 +1,10 @@
 import os
 from datetime import timedelta
+
 from flask import Flask, jsonify, request
 from flask_apscheduler import APScheduler
-from flask_jwt_extended import JWTManager
 from flask_cors import CORS
+from flask_jwt_extended import JWTManager
 from flask_mail import Mail
 from flask_restx import Api
 
@@ -11,60 +12,83 @@ from flask_restx import Api
 from src.database import db
 from src.models.user import User
 from src.routes.admin import admin_bp
+from src.routes.audit_log import audit_log_bp
 
 # 導入路由
 from src.routes.auth import auth_bp
-from src.routes.jwt_blacklist import jwt_blacklist_bp
-from src.routes.two_factor import two_factor_bp
 from src.routes.email_verification import email_verification_bp
+from src.routes.jwt_blacklist import jwt_blacklist_bp
 from src.routes.tenant import tenant_bp
+from src.routes.two_factor import two_factor_bp
 from src.routes.webhook import webhook_bp
-from src.routes.audit_log import audit_log_bp
 
 app = Flask(__name__)
+
 
 # 立即註冊健康檢查端點，確保它在任何耗時操作前可用
 @app.route("/health")
 def health_check():
     """健康檢查端點，支援文檔模式和版本信息"""
-    import subprocess
     import os
+    import subprocess
     from datetime import datetime
-    
+
     # 獲取版本信息
     try:
         # 獲取 Git commit hash
-        commit_hash = subprocess.check_output(['git', 'rev-parse', 'HEAD'], 
-                                            cwd=os.path.dirname(os.path.abspath(__file__)), 
-                                            stderr=subprocess.DEVNULL).decode().strip()
-        short_commit = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], 
-                                             cwd=os.path.dirname(os.path.abspath(__file__)), 
-                                             stderr=subprocess.DEVNULL).decode().strip()
-        branch = subprocess.check_output(['git', 'branch', '--show-current'], 
-                                       cwd=os.path.dirname(os.path.abspath(__file__)), 
-                                       stderr=subprocess.DEVNULL).decode().strip()
+        commit_hash = (
+            subprocess.check_output(
+                ["git", "rev-parse", "HEAD"],
+                cwd=os.path.dirname(os.path.abspath(__file__)),
+                stderr=subprocess.DEVNULL,
+            )
+            .decode()
+            .strip()
+        )
+        short_commit = (
+            subprocess.check_output(
+                ["git", "rev-parse", "--short", "HEAD"],
+                cwd=os.path.dirname(os.path.abspath(__file__)),
+                stderr=subprocess.DEVNULL,
+            )
+            .decode()
+            .strip()
+        )
+        branch = (
+            subprocess.check_output(
+                ["git", "branch", "--show-current"],
+                cwd=os.path.dirname(os.path.abspath(__file__)),
+                stderr=subprocess.DEVNULL,
+            )
+            .decode()
+            .strip()
+        )
     except:
         commit_hash = "unknown"
         short_commit = "unknown"
         branch = "unknown"
-    
+
     # 版本信息
     version_info = {
         "version": "1.0.4",  # 增加版本號
         "commit": short_commit,
         "commit_full": commit_hash,
         "branch": branch,
-        "build_time": datetime.utcnow().isoformat() + "Z"
+        "build_time": datetime.utcnow().isoformat() + "Z",
     }
-    
+
     # 檢查是否請求文檔格式
-    docs_param = request.args.get('docs', '').lower()
-    format_param = request.args.get('format', '').lower()
-    
+    docs_param = request.args.get("docs", "").lower()
+    format_param = request.args.get("format", "").lower()
+
     # 檢查 Accept 標頭
-    accept_header = request.headers.get('Accept', '')
-    
-    if docs_param == 'true' or format_param == 'html' or ('text/html' in accept_header and 'application/json' not in accept_header):
+    accept_header = request.headers.get("Accept", "")
+
+    if (
+        docs_param == "true"
+        or format_param == "html"
+        or ("text/html" in accept_header and "application/json" not in accept_header)
+    ):
         # 返回內聯 HTML 文檔
         return """<!DOCTYPE html>
 <html lang="zh-TW">
@@ -156,47 +180,57 @@ def health_check():
     </footer>
 </body>
 </html>"""
-    
-    # 默認健康檢查回應，包含版本和文檔訪問信息
-    return jsonify({
-        "ok": True, 
-        "message": "API is healthy",
-        "status": "ok",
-        "timestamp": datetime.utcnow().isoformat() + "Z",
-        **version_info,  # 包含版本、commit、branch 信息
-        "docs_access": {
-            "html": "https://morningai-mvp.onrender.com/health?docs=true",
-            "browser": "Visit https://morningai-mvp.onrender.com/health with browser",
-            "endpoints": {
-                "health": "/health",
-                "auth": {
-                    "register": "/api/register",
-                    "login": "/api/login",
-                    "logout": "/api/auth/logout",
-                    "profile": "/api/profile"
-                },
-                "admin": {
-                    "users": "/api/admin/users"
-                }
-            }
-        }
-    })
 
-CORS(app, origins=[
-    "http://localhost:3000",
-    "http://localhost:5173", 
-    "https://morningai-mvp-web.vercel.app",
-    "https://morningai-mvp-*.vercel.app"
-], allow_headers=["Content-Type", "Authorization"], allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
+    # 默認健康檢查回應，包含版本和文檔訪問信息
+    return jsonify(
+        {
+            "ok": True,
+            "message": "API is healthy",
+            "status": "ok",
+            "timestamp": datetime.utcnow().isoformat() + "Z",
+            **version_info,  # 包含版本、commit、branch 信息
+            "docs_access": {
+                "html": "https://morningai-mvp.onrender.com/health?docs=true",
+                "browser": "Visit https://morningai-mvp.onrender.com/health with browser",
+                "endpoints": {
+                    "health": "/health",
+                    "auth": {
+                        "register": "/api/register",
+                        "login": "/api/login",
+                        "logout": "/api/auth/logout",
+                        "profile": "/api/profile",
+                    },
+                    "admin": {"users": "/api/admin/users"},
+                },
+            },
+        }
+    )
+
+
+CORS(
+    app,
+    origins=[
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "https://morningai-mvp-web.vercel.app",
+        "https://morningai-mvp-*.vercel.app",
+    ],
+    allow_headers=["Content-Type", "Authorization"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+)
 
 # 配置資料庫
-app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///app.db")
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
+    "DATABASE_URL", "sqlite:///app.db"
+)
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 # 配置密鑰
 secret_key = os.environ.get("JWT_SECRET_KEY", "super-secret")
 app.config["SECRET_KEY"] = secret_key
-app.config["SECURITY_PASSWORD_SALT"] = os.environ.get("SECURITY_PASSWORD_SALT", "email-verification-salt")
+app.config["SECURITY_PASSWORD_SALT"] = os.environ.get(
+    "SECURITY_PASSWORD_SALT", "email-verification-salt"
+)
 
 # 配置 JWT
 app.config["JWT_SECRET_KEY"] = secret_key
@@ -206,12 +240,16 @@ app.config["JWT_HEADER_NAME"] = "Authorization"
 app.config["JWT_HEADER_TYPE"] = "Bearer"
 
 # 配置 Flask-Mail
-app.config['MAIL_SERVER'] = os.environ.get('SMTP_HOST')
-app.config['MAIL_PORT'] = int(os.environ.get('SMTP_PORT', 587))
-app.config['MAIL_USE_TLS'] = os.environ.get('MAIL_USE_TLS', 'true').lower() in ['true', 'on', '1']
-app.config['MAIL_USERNAME'] = os.environ.get('SMTP_USER')
-app.config['MAIL_PASSWORD'] = os.environ.get('SMTP_PASS')
-app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('EMAIL_FROM')
+app.config["MAIL_SERVER"] = os.environ.get("SMTP_HOST")
+app.config["MAIL_PORT"] = int(os.environ.get("SMTP_PORT", 587))
+app.config["MAIL_USE_TLS"] = os.environ.get("MAIL_USE_TLS", "true").lower() in [
+    "true",
+    "on",
+    "1",
+]
+app.config["MAIL_USERNAME"] = os.environ.get("SMTP_USER")
+app.config["MAIL_PASSWORD"] = os.environ.get("SMTP_PASS")
+app.config["MAIL_DEFAULT_SENDER"] = os.environ.get("EMAIL_FROM")
 
 # 初始化擴展
 db.init_app(app)
@@ -247,57 +285,66 @@ app.register_blueprint(audit_log_bp, url_prefix="/api")
 
 # 註冊 API 文檔
 from src.simple_docs import simple_docs_bp
+
 app.register_blueprint(simple_docs_bp)
+
 
 @app.route("/")
 def hello():
     """根路徑歡迎訊息，支援 HTML 文檔"""
     # 檢查格式參數
-    format_param = request.args.get('format', '').lower()
-    if format_param == 'html':
+    format_param = request.args.get("format", "").lower()
+    if format_param == "html":
         return get_api_docs_html()
-    
+
     # 檢查 Accept 標頭
-    accept_header = request.headers.get('Accept', '')
-    if 'text/html' in accept_header and 'application/json' not in accept_header:
+    accept_header = request.headers.get("Accept", "")
+    if "text/html" in accept_header and "application/json" not in accept_header:
         return get_api_docs_html()
-    
+
     # 默認返回 JSON
-    return jsonify({
-        "message": "Welcome to MorningAI MVP API!",
-        "version": "1.0.2", 
-        "timestamp": "2025-09-20T05:15:00Z",
-        "docs_available": True,
-        "docs_access": [
-            "Visit https://morningai-mvp.onrender.com/?format=html",
-            "Visit with browser (HTML Accept header)",
-            "Use /docs endpoint (when deployed)"
-        ],
-        "endpoints": {
-            "health": "/health",
-            "auth": {
-                "register": "/api/register",
-                "login": "/api/login", 
-                "logout": "/api/auth/logout",
-                "profile": "/api/profile"
+    return jsonify(
+        {
+            "message": "Welcome to MorningAI MVP API!",
+            "version": "1.0.2",
+            "timestamp": "2025-09-20T05:15:00Z",
+            "docs_available": True,
+            "docs_access": [
+                "Visit https://morningai-mvp.onrender.com/?format=html",
+                "Visit with browser (HTML Accept header)",
+                "Use /docs endpoint (when deployed)",
+            ],
+            "endpoints": {
+                "health": "/health",
+                "auth": {
+                    "register": "/api/register",
+                    "login": "/api/login",
+                    "logout": "/api/auth/logout",
+                    "profile": "/api/profile",
+                },
+                "admin": {"users": "/api/admin/users"},
             },
-            "admin": {
-                "users": "/api/admin/users"
-            }
-        },
-        "status": "✅ JWT Blacklist Fixed | ❌ /docs endpoint pending deployment"
-    })
+            "status": "✅ JWT Blacklist Fixed | ❌ /docs endpoint pending deployment",
+        }
+    )
+
 
 @app.route("/test-deployment")
 def test_deployment():
     """測試部署狀態"""
     import datetime
-    return jsonify({
-        "status": "deployed",
-        "timestamp": datetime.datetime.utcnow().isoformat(),
-        "routes_count": len(list(app.url_map.iter_rules())),
-        "docs_route_exists": any(rule.rule == '/docs' for rule in app.url_map.iter_rules())
-    })
+
+    return jsonify(
+        {
+            "status": "deployed",
+            "timestamp": datetime.datetime.utcnow().isoformat(),
+            "routes_count": len(list(app.url_map.iter_rules())),
+            "docs_route_exists": any(
+                rule.rule == "/docs" for rule in app.url_map.iter_rules()
+            ),
+        }
+    )
+
 
 def get_api_docs_html():
     """獲取 API 文檔 HTML 內容"""
@@ -379,11 +426,13 @@ def get_api_docs_html():
     """
     return docs_html
 
+
 @app.route("/docs")
 @app.route("/docs/")
 def api_docs():
     """API 文檔頁面"""
     return get_api_docs_html()
+
 
 @app.route("/api-docs")
 @app.route("/api-docs/")
@@ -391,17 +440,20 @@ def api_docs_alt():
     """API 文檔頁面 (備選路徑)"""
     return get_api_docs_html()
 
+
 @app.route("/documentation")
 @app.route("/documentation/")
 def documentation():
     """API 文檔頁面 (第三備選路徑)"""
     return get_api_docs_html()
 
+
 @app.route("/swagger")
 @app.route("/swagger/")
 def swagger_docs():
     """Swagger 風格的 API 文檔"""
     return get_api_docs_html()
+
 
 def print_routes():
     """啟動時列印所有路由，方便調試 404/405 問題"""
@@ -424,7 +476,9 @@ with app.app_context():
 
         # 檢查遷移是否失敗，如果失敗則使用 create_all 作為後備
         if any("FAILED" in str(result) for result in migration_results):
-            print("⚠️ Some migrations failed, attempting fallback with db.create_all()...")
+            print(
+                "⚠️ Some migrations failed, attempting fallback with db.create_all()..."
+            )
             db.create_all()
             print("✅ Fallback database creation completed")
 
@@ -435,7 +489,9 @@ with app.app_context():
             from sqlalchemy import text
 
             result = db.session.execute(
-                text("SELECT column_name FROM information_schema.columns WHERE table_name = 'user'")
+                text(
+                    "SELECT column_name FROM information_schema.columns WHERE table_name = 'user'"
+                )
             )
             columns = [row[0] for row in result]
             print(f"📋 User table columns: {columns}")

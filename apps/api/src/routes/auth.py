@@ -3,13 +3,12 @@ import os
 from functools import wraps
 
 import jwt
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, current_app, jsonify, request
 
-from flask import current_app
+from src.audit_log import AuditActions, audit_log
 from src.decorators import token_required
-from src.audit_log import audit_log, AuditActions
-from src.models.user import User, db
 from src.models.audit_log import AuditLog
+from src.models.user import User, db
 
 auth_bp = Blueprint("auth", __name__)
 # JWT 配置
@@ -101,15 +100,17 @@ def login():
             AuditLog.log_action(
                 action=AuditActions.LOGIN_FAILED,
                 user_id=user.id if user else None,
-                ip_address=request.environ.get("HTTP_X_FORWARDED_FOR", request.remote_addr),
+                ip_address=request.environ.get(
+                    "HTTP_X_FORWARDED_FOR", request.remote_addr
+                ),
                 user_agent=request.headers.get("User-Agent", "")[:500],
                 details={
                     "reason": "invalid_credentials",
                     "attempted_email": email,
                     "attempted_username": username,
-                    "username": user.username if user else (email or username)
+                    "username": user.username if user else (email or username),
                 },
-                status="failed"
+                status="failed",
             )
             return jsonify({"message": "郵箱/用戶名或密碼錯誤"}), 401
 
@@ -121,7 +122,10 @@ def login():
             if not otp:
                 return (
                     jsonify(
-                        {"message": "此帳戶已啟用 2FA，請提供 OTP 驗證碼", "requires_2fa": True}
+                        {
+                            "message": "此帳戶已啟用 2FA，請提供 OTP 驗證碼",
+                            "requires_2fa": True,
+                        }
                     ),
                     401,
                 )
@@ -141,10 +145,13 @@ def login():
             "role": user.role,
             "jti": jti,  # JWT ID，用於黑名單管理
             "iat": datetime.datetime.utcnow(),
-            "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=JWT_EXPIRATION_HOURS),
+            "exp": datetime.datetime.utcnow()
+            + datetime.timedelta(hours=JWT_EXPIRATION_HOURS),
         }
 
-        token = jwt.encode(payload, current_app.config["JWT_SECRET_KEY"], algorithm=JWT_ALGORITHM)
+        token = jwt.encode(
+            payload, current_app.config["JWT_SECRET_KEY"], algorithm=JWT_ALGORITHM
+        )
 
         # 記錄成功登入的審計日誌
         response_data = {"message": "登錄成功", "token": token, "user": user.to_dict()}
@@ -158,8 +165,8 @@ def login():
                 "request_args": dict(request.args),
                 "response_data": response_data,
                 "status_code": 200,
-                "username": user.username
-            }
+                "username": user.username,
+            },
         )
 
         return jsonify(response_data), 200

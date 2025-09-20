@@ -3,9 +3,9 @@ from datetime import datetime
 import jwt
 from flask import Blueprint, current_app, jsonify, request
 
+from src.database import db
 from src.decorators import token_required
 from src.models.jwt_blacklist import JWTBlacklist
-from src.database import db
 
 jwt_blacklist_bp = Blueprint("jwt_blacklist", __name__)
 
@@ -34,7 +34,9 @@ def logout(current_user):
 
         # 解碼 token 獲取過期時間和 JTI
         try:
-            payload = jwt.decode(token, current_app.config["JWT_SECRET_KEY"], algorithms=["HS256"])
+            payload = jwt.decode(
+                token, current_app.config["JWT_SECRET_KEY"], algorithms=["HS256"]
+            )
 
             jti = payload.get("jti")
             exp = payload.get("exp")
@@ -95,7 +97,9 @@ def revoke_token(current_user):
 
         try:
             payload = jwt.decode(
-                token_to_revoke, current_app.config["JWT_SECRET_KEY"], algorithms=["HS256"]
+                token_to_revoke,
+                current_app.config["JWT_SECRET_KEY"],
+                algorithms=["HS256"],
             )
 
             jti = payload.get("jti")

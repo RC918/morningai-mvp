@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+
 from flask import Blueprint, current_app, jsonify, request
 
 from src.database import db
@@ -177,10 +178,12 @@ def get_audit_stats(current_user):
                     ),
                     "active_users": active_users,
                     "action_stats": [
-                        {"action": action, "count": count} for action, count in action_stats
+                        {"action": action, "count": count}
+                        for action, count in action_stats
                     ],
                     "status_stats": [
-                        {"status": status, "count": count} for status, count in status_stats
+                        {"status": status, "count": count}
+                        for status, count in status_stats
                     ],
                 }
             ),
@@ -258,7 +261,9 @@ def export_audit_logs(current_user):
             end_dt = datetime.fromisoformat(end_date.replace("Z", "+00:00"))
             query = query.filter(AuditLog.created_at <= end_dt)
 
-        logs = query.order_by(AuditLog.created_at.desc()).limit(10000).all()  # 限制導出數量
+        logs = (
+            query.order_by(AuditLog.created_at.desc()).limit(10000).all()
+        )  # 限制導出數量
 
         # 記錄導出操作
         client_info = get_client_info(request)

@@ -7,6 +7,7 @@ from flask import Blueprint, current_app, jsonify, request
 from src.database import db
 from src.decorators import token_required
 from src.services.two_factor_service import get_two_factor_service
+
 # from src.audit_log import audit_log, AuditActions
 
 two_factor_bp = Blueprint("two_factor", __name__)
@@ -18,7 +19,7 @@ def setup_2fa(current_user):
     """設置 2FA - 生成密鑰和 QR 碼"""
     try:
         two_factor_service = get_two_factor_service()
-        
+
         # 生成 2FA 密鑰
         if not current_user.two_factor_secret:
             secret = two_factor_service.generate_secret()
@@ -29,21 +30,24 @@ def setup_2fa(current_user):
 
         # 生成 QR 碼
         qr_code = two_factor_service.generate_qr_code(secret, current_user.username)
-        
+
         # 生成 TOTP URI
         import pyotp
-        totp = pyotp.TOTP(secret)
-        uri = totp.provisioning_uri(
-            name=current_user.username,
-            issuer_name="MorningAI"
-        )
 
-        return jsonify({
-            "message": "2FA 設置成功",
-            "secret": secret,
-            "qr_code": qr_code,
-            "uri": uri,
-        }), 200
+        totp = pyotp.TOTP(secret)
+        uri = totp.provisioning_uri(name=current_user.username, issuer_name="MorningAI")
+
+        return (
+            jsonify(
+                {
+                    "message": "2FA 設置成功",
+                    "secret": secret,
+                    "qr_code": qr_code,
+                    "uri": uri,
+                }
+            ),
+            200,
+        )
 
     except Exception as e:
         current_app.logger.error(f"2FA setup error: {str(e)}")
@@ -82,7 +86,6 @@ def enable_2fa(current_user):
 
 @two_factor_bp.route("/auth/2fa/disable", methods=["POST"])
 @token_required
-
 def disable_2fa(current_user):
     """停用 2FA"""
     try:
@@ -120,7 +123,6 @@ def get_2fa_status(current_user):
         ),
         200,
     )
-
 
 
 @two_factor_bp.route("/auth/2fa/backup-codes", methods=["GET"])

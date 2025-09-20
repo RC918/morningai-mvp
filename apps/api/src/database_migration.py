@@ -27,7 +27,9 @@ def add_column_if_not_exists(table_name, column_name, column_definition):
     """如果欄位不存在，則添加到表格中"""
     try:
         if not check_column_exists(table_name, column_name):
-            sql = f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_definition}"
+            sql = (
+                f"ALTER TABLE {table_name} ADD COLUMN {column_name} {column_definition}"
+            )
             # 使用新的 SQLAlchemy 語法
             with db.engine.connect() as connection:
                 connection.execute(text(sql))

@@ -9,7 +9,8 @@ db = SQLAlchemy()
 
 # 設置資料庫連接
 DATABASE_URL = os.environ.get(
-    "DATABASE_URL", f"sqlite:///{os.path.join(os.path.dirname(__file__), 'database', 'app.db')}"
+    "DATABASE_URL",
+    f"sqlite:///{os.path.join(os.path.dirname(__file__), 'database', 'app.db')}",
 )
 
 engine = create_engine(DATABASE_URL)

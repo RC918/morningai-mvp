@@ -1,0 +1,53 @@
+{
+  "timestamp": "2025-09-20T17:48:59.225970+00:00",
+  "overall_status": "healthy",
+  "endpoints": [
+    {
+      "name": "api",
+      "url": "https://morningai-mvp.onrender.com/health",
+      "timestamp": "2025-09-20T17:48:59.225994+00:00",
+      "status": "healthy",
+      "response_time": 355.05,
+      "status_code": 200,
+      "error": null,
+      "response_data": {
+        "docs_access": {
+          "browser": "Visit https://morningai-mvp.onrender.com/health with browser",
+          "endpoints": {
+            "admin": {
+              "users": "/api/admin/users"
+            },
+            "auth": {
+              "login": "/api/login",
+              "logout": "/api/auth/logout",
+              "profile": "/api/profile",
+              "register": "/api/register"
+            },
+            "health": "/health"
+          },
+          "html": "https://morningai-mvp.onrender.com/health?docs=true"
+        },
+        "message": "API is healthy",
+        "ok": true,
+        "status": "ok",
+        "timestamp": "2025-09-20T05:25:00Z",
+        "version": "1.0.3"
+      }
+    },
+    {
+      "name": "web",
+      "url": "https://morningai-mvp-web.vercel.app",
+      "timestamp": "2025-09-20T17:48:59.582267+00:00",
+      "status": "healthy",
+      "response_time": 124.04,
+      "status_code": 200,
+      "error": null
+    }
+  ],
+  "summary": {
+    "total_endpoints": 2,
+    "healthy_count": 2,
+    "unhealthy_count": 0,
+    "average_response_time": 239.55
+  }
+}

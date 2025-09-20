@@ -1,7 +1,10 @@
 import json
 from functools import wraps
-from flask import request, g, current_app
-from .models.audit_log import AuditLog, AuditActions
+
+from flask import current_app, g, request
+
+from .models.audit_log import AuditActions, AuditLog
+
 
 def audit_log(action: str, resource_type: str = None):
     def decorator(f):
@@ -30,13 +33,21 @@ def audit_log(action: str, resource_type: str = None):
             actor_id = g.get("user_id", None)
 
             # 對於成功的登入/註冊，執行者就是該用戶
-            if not actor_id and status == "success" and action in [AuditActions.LOGIN, AuditActions.REGISTER]:
+            if (
+                not actor_id
+                and status == "success"
+                and action in [AuditActions.LOGIN, AuditActions.REGISTER]
+            ):
                 if response_data and "user" in response_data:
                     actor_id = response_data.get("user", {}).get("id")
 
             # 獲取目標資源 ID (resource_id)
             resource_id = kwargs.get("user_id") or kwargs.get("id")
-            if not resource_id and status == "success" and action == AuditActions.REGISTER:
+            if (
+                not resource_id
+                and status == "success"
+                and action == AuditActions.REGISTER
+            ):
                 if response_data and "user" in response_data:
                     resource_id = response_data.get("user", {}).get("id")
 

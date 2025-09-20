@@ -10,9 +10,13 @@ class JWTBlacklist(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     jti = db.Column(db.String(36), unique=True, nullable=False, index=True)  # JWT ID
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=False, index=True
+    )
 
-    token_type = db.Column(db.String(20), nullable=False, default="access")  # access, refresh
+    token_type = db.Column(
+        db.String(20), nullable=False, default="access"
+    )  # access, refresh
     expires_at = db.Column(db.DateTime, nullable=False, index=True)  # 索引用於清理查詢
     blacklisted_at = db.Column(db.DateTime, default=datetime.utcnow)
     reason = db.Column(
@@ -35,7 +39,7 @@ class JWTBlacklist(db.Model):
         try:
             token = cls.query.filter_by(jti=jti).first()
             print(f"[JWT_BLACKLIST] Checking JTI: {jti}, Found: {token is not None}")
-            
+
             if not token:
                 return False
 
@@ -53,15 +57,19 @@ class JWTBlacklist(db.Model):
             return False
 
     @classmethod
-    def add_to_blacklist(cls, jti, user_id, expires_at, token_type="access", reason=None):
+    def add_to_blacklist(
+        cls, jti, user_id, expires_at, token_type="access", reason=None
+    ):
         """將 JWT 添加到黑名單"""
         if not jti:
             print(f"[JWT_BLACKLIST] No JTI provided for blacklisting")
             return None
 
         try:
-            print(f"[JWT_BLACKLIST] Adding to blacklist - JTI: {jti}, User: {user_id}, Reason: {reason}")
-            
+            print(
+                f"[JWT_BLACKLIST] Adding to blacklist - JTI: {jti}, User: {user_id}, Reason: {reason}"
+            )
+
             # 檢查是否已存在
             existing = cls.query.filter_by(jti=jti).first()
             if existing:
@@ -83,6 +91,7 @@ class JWTBlacklist(db.Model):
             db.session.rollback()
             print(f"[JWT_BLACKLIST] Error adding token to blacklist: {e}")
             import traceback
+
             traceback.print_exc()
             return None
 
@@ -112,6 +121,8 @@ class JWTBlacklist(db.Model):
             "username": self.user.username if self.user else None,
             "token_type": self.token_type,
             "expires_at": self.expires_at.isoformat() if self.expires_at else None,
-            "blacklisted_at": self.blacklisted_at.isoformat() if self.blacklisted_at else None,
+            "blacklisted_at": (
+                self.blacklisted_at.isoformat() if self.blacklisted_at else None
+            ),
             "reason": self.reason,
         }

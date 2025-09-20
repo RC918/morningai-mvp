@@ -30,13 +30,13 @@ const DashboardLayout = () => {
   );
 };
 
-const LayoutWithSidebar = ({ component: Component }) => {
+const LayoutWithSidebar = ({ component: PageComponent }) => {
   const { user, logout } = useAuth();
   return (
     <div className="flex h-screen">
       <Sidebar user={user} onLogout={logout} />
       <div className="flex-1 overflow-auto">
-        <Component />
+        <PageComponent />
       </div>
     </div>
   );

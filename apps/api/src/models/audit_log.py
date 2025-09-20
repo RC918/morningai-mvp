@@ -10,14 +10,18 @@ class AuditLog(db.Model):
     __tablename__ = "audit_logs"
 
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True, index=True) # 可能是系統操作
+    user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=True, index=True
+    )  # 可能是系統操作
     action = db.Column(db.String(100), nullable=False)  # 操作類型
     resource_type = db.Column(db.String(50), nullable=True)  # 資源類型
     resource_id = db.Column(db.String(50), nullable=True)  # 資源 ID
     details = db.Column(db.Text, nullable=True)  # 詳細信息（JSON 格式）
     ip_address = db.Column(db.String(45), nullable=True)  # IP 地址
     user_agent = db.Column(db.String(500), nullable=True)  # 用戶代理
-    status = db.Column(db.String(20), nullable=False, default="success")  # success, failed, error
+    status = db.Column(
+        db.String(20), nullable=False, default="success"
+    )  # success, failed, error
     created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
 
     # 關聯到用戶

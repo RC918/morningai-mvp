@@ -30,7 +30,10 @@ def require_role(required_role):
             try:
                 token_type, token = auth_header.split(" ")
                 if token_type.lower() != "bearer":
-                    return jsonify({"error": "Invalid authorization header format"}), 401
+                    return (
+                        jsonify({"error": "Invalid authorization header format"}),
+                        401,
+                    )
             except ValueError:
                 return jsonify({"error": "Invalid authorization header format"}), 401
 
@@ -65,7 +68,6 @@ def require_role(required_role):
 
                 return f(request.current_user, *args, **kwargs)
 
-
             except jwt.ExpiredSignatureError:
                 return jsonify({"error": "Token has expired"}), 401
             except jwt.InvalidTokenError:
@@ -98,7 +100,9 @@ def token_required(f):
             return jsonify({"error": "Invalid authorization header format"}), 401
 
         try:
-            payload = jwt.decode(token, current_app.config["JWT_SECRET_KEY"], algorithms=["HS256"])
+            payload = jwt.decode(
+                token, current_app.config["JWT_SECRET_KEY"], algorithms=["HS256"]
+            )
 
             user_id = payload.get("sub") or payload.get("user_id")
             if isinstance(user_id, str):
@@ -127,10 +131,13 @@ def token_required(f):
             if request.current_user.tokens_valid_since:
                 if "iat" not in payload:
                     return jsonify({"error": "Token is missing 'iat' claim"}), 401
-                
+
                 token_iat = datetime.fromtimestamp(payload["iat"])
                 if token_iat < request.current_user.tokens_valid_since:
-                    return jsonify({"error": "Token has been revoked by logout all"}), 401
+                    return (
+                        jsonify({"error": "Token has been revoked by logout all"}),
+                        401,
+                    )
 
             return f(request.current_user, *args, **kwargs)
 
@@ -143,7 +150,6 @@ def token_required(f):
             return jsonify({"error": f"Token validation failed: {str(e)}"}), 401
 
     return decorated_function
-
 
 
 def get_current_user():
