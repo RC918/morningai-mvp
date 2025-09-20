@@ -129,6 +129,14 @@ function App() {
               }
             />
             <Route 
+              path="/two-factor" 
+              element={
+                <PrivateRoute>
+                  <LayoutWithSidebar component={TwoFactorAuthSettings} />
+                </PrivateRoute>
+              }
+            />
+            <Route 
               path="/" 
               element={<Navigate to="/login" replace />}
             />

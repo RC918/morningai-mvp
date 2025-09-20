@@ -164,20 +164,41 @@ const TwoFactorAuthSettings = () => {
             ) : (
               <div className="space-y-4">
                 <p>請使用您的認證應用程式掃描以下 QR 碼，或手動輸入密鑰：</p>
-                <div className="flex justify-center">
-                  <img src={qrCode} alt="QR Code" className="w-48 h-48 border p-2" />
+                
+                {qrCode ? (
+                  <div className="flex justify-center">
+                    <img src={qrCode} alt="QR Code" className="w-48 h-48 border p-2" />
+                  </div>
+                ) : (
+                  <div className="flex justify-center">
+                    <div className="w-48 h-48 border-2 border-dashed border-gray-300 flex items-center justify-center bg-gray-50">
+                      <div className="text-center text-gray-500">
+                        <p className="text-sm">QR Code 生成中...</p>
+                        <p className="text-xs mt-1">請稍候或使用下方密鑰</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="bg-gray-50 p-3 rounded">
+                  <p className="text-sm font-medium text-gray-700 mb-1">手動輸入密鑰：</p>
+                  <p className="text-sm text-gray-600 break-all font-mono">{secret}</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    在您的認證應用程式中選擇「手動輸入」並使用此密鑰
+                  </p>
                 </div>
-                <p className="text-sm text-gray-600 break-all">密鑰: {secret}</p>
-                <Label htmlFor="otp">輸入 OTP 以啟用 2FA</Label>
+                
+                <Label htmlFor="otp">輸入 6 位數 OTP 驗證碼</Label>
                 <Input
                   id="otp"
                   type="text"
-                  placeholder="輸入 OTP"
+                  placeholder="例如：123456"
                   value={otp}
-                  onChange={(e) => setOtp(e.target.value)}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                   disabled={loading}
+                  maxLength={6}
                 />
-                <Button onClick={handleEnable2FA} disabled={loading} className="w-full">
+                <Button onClick={handleEnable2FA} disabled={loading || otp.length !== 6} className="w-full">
                   {loading ? '啟用中...' : '啟用 2FA'}
                 </Button>
               </div>
