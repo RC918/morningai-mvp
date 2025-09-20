@@ -1,5 +1,4 @@
-from datetime import datetime, timedelta
-
+from datetime import datetime
 from flask import Blueprint, current_app, jsonify, request
 
 from src.database import db

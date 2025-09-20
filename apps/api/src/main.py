@@ -19,6 +19,7 @@ from src.routes.two_factor import two_factor_bp
 from src.routes.email_verification import email_verification_bp
 from src.routes.tenant import tenant_bp
 from src.routes.webhook import webhook_bp
+from src.routes.audit_log import audit_log_bp
 
 app = Flask(__name__)
 
@@ -148,7 +149,7 @@ def health_check():
                 }
             }
         },
-        "status": "✅ All systems operational | JWT Blacklist: ✅ Working | Docs: Available via ?docs=true"
+        "status": "ok"
     })
 
 CORS(app, origins=[
@@ -209,6 +210,7 @@ app.register_blueprint(jwt_blacklist_bp, url_prefix="/api")
 app.register_blueprint(email_verification_bp, url_prefix="/api")
 app.register_blueprint(tenant_bp, url_prefix="/api")
 app.register_blueprint(webhook_bp, url_prefix="/api")
+app.register_blueprint(audit_log_bp, url_prefix="/api")
 
 # 註冊 API 文檔
 from src.simple_docs import simple_docs_bp
