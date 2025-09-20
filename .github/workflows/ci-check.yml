@@ -125,39 +125,39 @@ jobs:
           else
             echo "=== API Import Smoke Test ===" | tee ../../artifacts/${{ matrix.app.name }}_import_smoke.txt
             python -c "
-import sys
-import traceback
+              import sys
+              import traceback
 
-def test_imports():
-    try:
-        print('Testing Flask imports...')
-        import flask
-        print('✅ Flask import successful')
-        
-        print('Testing SQLAlchemy imports...')
-        import sqlalchemy
-        print('✅ SQLAlchemy import successful')
-        
-        print('Testing application imports...')
-        sys.path.insert(0, 'src')
-        import main
-        print('✅ Main application import successful')
-        
-        from src.models.user import User
-        print('✅ User model import successful')
-        
-        from src.routes.auth import auth_bp
-        print('✅ Auth routes import successful')
-        
-        print('All imports successful')
-        return True
-    except Exception as e:
-        print(f'❌ Import failed: {e}')
-        traceback.print_exc()
-        return False
+              def test_imports():
+                  try:
+                      print('Testing Flask imports...')
+                      import flask
+                      print('✅ Flask import successful')
+                      
+                      print('Testing SQLAlchemy imports...')
+                      import sqlalchemy
+                      print('✅ SQLAlchemy import successful')
+                      
+                      print('Testing application imports...')
+                      sys.path.insert(0, 'src')
+                      import main
+                      print('✅ Main application import successful')
+                      
+                      from src.models.user import User
+                      print('✅ User model import successful')
+                      
+                      from src.routes.auth import auth_bp
+                      print('✅ Auth routes import successful')
+                      
+                      print('All imports successful')
+                      return True
+                  except Exception as e:
+                      print(f'❌ Import failed: {e}')
+                      traceback.print_exc()
+                      return False
 
-if not test_imports():
-    sys.exit(1)
+              if not test_imports():
+                  sys.exit(1)
             " 2>&1 | tee -a ../../artifacts/${{ matrix.app.name }}_import_smoke.txt
           fi
 

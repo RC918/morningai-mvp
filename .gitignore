@@ -14,3 +14,11 @@ __pycache__/
 .llm.cas
 *.pyc
 
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+instance/
+temp_*
+test_*
