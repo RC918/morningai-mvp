@@ -5,13 +5,14 @@ from functools import wraps
 import jwt
 from flask import Blueprint, jsonify, request
 
+from flask import current_app
 from src.decorators import token_required
 from src.audit_log import audit_log, AuditActions
 from src.models.user import User, db
+from src.models.audit_log import AuditLog
 
 auth_bp = Blueprint("auth", __name__)
 # JWT 配置
-JWT_SECRET = os.environ.get("JWT_SECRET_KEY", "super-secret")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRATION_HOURS = 24
 
@@ -22,7 +23,7 @@ def admin_required(f):
     @wraps(f)
     def decorated(current_user, *args, **kwargs):
         if not current_user.is_admin():
-            return jsonify({"message": "需要管理員權限"}), 403
+            return jsonify({"error": "forbidden"}), 403
         return f(current_user, *args, **kwargs)
 
     return decorated
@@ -96,6 +97,20 @@ def login():
             user = User.query.filter_by(username=username).first()
 
         if not user or not user.check_password(password):
+            # 記錄登入失敗的審計日誌
+            AuditLog.log_action(
+                action=AuditActions.LOGIN_FAILED,
+                user_id=user.id if user else None,
+                ip_address=request.environ.get("HTTP_X_FORWARDED_FOR", request.remote_addr),
+                user_agent=request.headers.get("User-Agent", "")[:500],
+                details={
+                    "reason": "invalid_credentials",
+                    "attempted_email": email,
+                    "attempted_username": username,
+                    "username": user.username if user else (email or username)
+                },
+                status="failed"
+            )
             return jsonify({"message": "郵箱/用戶名或密碼錯誤"}), 401
 
         if not user.is_active:
@@ -125,12 +140,29 @@ def login():
             "username": user.username,
             "role": user.role,
             "jti": jti,  # JWT ID，用於黑名單管理
+            "iat": datetime.datetime.utcnow(),
             "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=JWT_EXPIRATION_HOURS),
         }
 
-        token = jwt.encode(payload, JWT_SECRET, algorithm=JWT_ALGORITHM)
+        token = jwt.encode(payload, current_app.config["JWT_SECRET_KEY"], algorithm=JWT_ALGORITHM)
 
-        return jsonify({"message": "登錄成功", "token": token, "user": user.to_dict()}), 200
+        # 記錄成功登入的審計日誌
+        response_data = {"message": "登錄成功", "token": token, "user": user.to_dict()}
+        AuditLog.log_action(
+            action=AuditActions.LOGIN,
+            user_id=user.id,
+            ip_address=request.environ.get("HTTP_X_FORWARDED_FOR", request.remote_addr),
+            user_agent=request.headers.get("User-Agent", "")[:500],
+            details={
+                "request_json": data,
+                "request_args": dict(request.args),
+                "response_data": response_data,
+                "status_code": 200,
+                "username": user.username
+            }
+        )
+
+        return jsonify(response_data), 200
 
     except Exception as e:
         return jsonify({"message": f"登錄失敗: {str(e)}"}), 500

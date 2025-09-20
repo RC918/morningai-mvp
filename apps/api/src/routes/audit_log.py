@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import Blueprint, current_app, jsonify, request
 
 from src.database import db
@@ -21,7 +21,7 @@ def get_client_info(request):
 def get_audit_logs(current_user):
     """獲取審計日誌（僅管理員）"""
     if not current_user.is_admin():
-        return jsonify({"message": "需要管理員權限"}), 403
+        return jsonify({"error": "forbidden"}), 403
 
     try:
         page = request.args.get("page", 1, type=int)
@@ -124,7 +124,7 @@ def get_my_audit_logs(current_user):
 def get_audit_stats(current_user):
     """獲取審計日誌統計（僅管理員）"""
     if not current_user.is_admin():
-        return jsonify({"message": "需要管理員權限"}), 403
+        return jsonify({"error": "forbidden"}), 403
 
     try:
         # 獲取時間範圍
@@ -197,7 +197,7 @@ def get_audit_stats(current_user):
 def cleanup_audit_logs(current_user):
     """清理舊的審計日誌（僅管理員）"""
     if not current_user.is_admin():
-        return jsonify({"message": "需要管理員權限"}), 403
+        return jsonify({"error": "forbidden"}), 403
 
     try:
         data = request.get_json()
@@ -239,7 +239,7 @@ def cleanup_audit_logs(current_user):
 def export_audit_logs(current_user):
     """導出審計日誌（僅管理員）"""
     if not current_user.is_admin():
-        return jsonify({"message": "需要管理員權限"}), 403
+        return jsonify({"error": "forbidden"}), 403
 
     try:
         data = request.get_json()

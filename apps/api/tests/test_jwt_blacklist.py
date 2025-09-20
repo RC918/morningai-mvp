@@ -230,3 +230,43 @@ class TestJWTBlacklist:
 if __name__ == '__main__':
     pytest.main([__file__, '-v'])
 
+
+
+
+    def test_logout_all_invalidates_older_tokens(self, client):
+        """TC-JWTBL-003: 登出所有裝置後，舊 token 失效，新 token 有效"""
+        # 1. 第一次登入，取得 token 1
+        response = client.post('/api/auth/login', json={
+            'email': 'test@example.com',
+            'password': 'testpass123'
+        })
+        assert response.status_code == 200
+        token1 = json.loads(response.data)['token']
+        headers1 = {'Authorization': f'Bearer {token1}'}
+
+        # 2. 驗證 token 1 有效
+        response = client.get('/api/auth/profile', headers=headers1)
+        assert response.status_code == 200
+
+        # 3. 執行「登出所有裝置」
+        response = client.post('/api/auth/logout-all', headers=headers1)
+        assert response.status_code == 200
+
+        # 4. 驗證 token 1 已失效
+        response = client.get('/api/auth/profile', headers=headers1)
+        assert response.status_code == 401
+        assert 'Token has been revoked by logout all' in json.loads(response.data)['error']
+
+        # 5. 第二次登入，取得 token 2
+        response = client.post('/api/auth/login', json={
+            'email': 'test@example.com',
+            'password': 'testpass123'
+        })
+        assert response.status_code == 200
+        token2 = json.loads(response.data)['token']
+        headers2 = {'Authorization': f'Bearer {token2}'}
+
+        # 6. 驗證 token 2 有效
+        response = client.get('/api/auth/profile', headers=headers2)
+        assert response.status_code == 200
+

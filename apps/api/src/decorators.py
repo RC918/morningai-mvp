@@ -65,6 +65,7 @@ def require_role(required_role):
 
                 return f(request.current_user, *args, **kwargs)
 
+
             except jwt.ExpiredSignatureError:
                 return jsonify({"error": "Token has expired"}), 401
             except jwt.InvalidTokenError:
@@ -122,6 +123,15 @@ def token_required(f):
             if not request.current_user:
                 return jsonify({"error": "User not found"}), 401
 
+            # 檢查 token 是否在用戶設置的“全部登出”時間點之前發行
+            if request.current_user.tokens_valid_since:
+                if "iat" not in payload:
+                    return jsonify({"error": "Token is missing 'iat' claim"}), 401
+                
+                token_iat = datetime.fromtimestamp(payload["iat"])
+                if token_iat < request.current_user.tokens_valid_since:
+                    return jsonify({"error": "Token has been revoked by logout all"}), 401
+
             return f(request.current_user, *args, **kwargs)
 
         except jwt.ExpiredSignatureError:
@@ -133,6 +143,7 @@ def token_required(f):
             return jsonify({"error": f"Token validation failed: {str(e)}"}), 401
 
     return decorated_function
+
 
 
 def get_current_user():

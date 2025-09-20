@@ -51,9 +51,9 @@ class TestEmailVerification:
         token_data = {'email': self.test_email, 'user_id': self.test_user_id}
         token = self.serializer.dumps(token_data, salt='email-verification')
         
-        # Try to verify with very short max_age to simulate expiration
+        # Try to verify with negative max_age to simulate expiration
         try:
-            self.serializer.loads(token, salt='email-verification', max_age=0)
+            self.serializer.loads(token, salt='email-verification', max_age=-1)
             verification_success = True
         except SignatureExpired:
             verification_success = False
@@ -195,9 +195,9 @@ class TestEmailVerificationFlow:
         token_data = {'email': self.test_email, 'user_id': self.test_user_id}
         token = serializer.dumps(token_data, salt='email-verification')
         
-        # Try to verify with expired token (max_age=0)
+        # Try to verify with expired token (max_age=-1)
         try:
-            serializer.loads(token, salt='email-verification', max_age=0)
+            serializer.loads(token, salt='email-verification', max_age=-1)
             verification_success = True
         except SignatureExpired:
             verification_success = False

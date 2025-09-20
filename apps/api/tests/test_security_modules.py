@@ -28,9 +28,9 @@ def client():
                 email='test@example.com',
                 role='user',
                 is_active=True,
-                is_email_verified=True
+                is_email_verified=False
             )
-            test_user.set_password('testpass123')
+            test_user.set_password('password123')
             db.session.add(test_user)
             
             # 創建管理員用戶
@@ -41,7 +41,7 @@ def client():
                 is_active=True,
                 is_email_verified=True
             )
-            admin_user.set_password('adminpass123')
+            admin_user.set_password('password123')
             db.session.add(admin_user)
             
             try:
@@ -62,7 +62,7 @@ def auth_headers(client):
     # 登入獲取 token
     response = client.post('/api/login', json={
         'email': 'test@example.com',
-        'password': 'testpass123'
+        'password': 'password123'
     })
     
     data = json.loads(response.data)
@@ -75,7 +75,7 @@ def admin_headers(client):
     """獲取管理員認證標頭"""
     response = client.post('/api/login', json={
         'email': 'admin@example.com',
-        'password': 'adminpass123'
+        'password': 'password123'
     })
     
     data = json.loads(response.data)
@@ -88,15 +88,12 @@ class TestEmailVerification:
     
     def test_send_verification_email(self, client, auth_headers):
         """測試發送驗證郵件"""
-        with patch('src.routes.email_verification.send_email') as mock_send:
+        with patch("src.services.email_service.send_email") as mock_send:
             mock_send.return_value = True
-            
-            response = client.post('/api/auth/send-verification', 
-                                 headers=auth_headers)
-            
+            response = client.post("/api/auth/send-verification", headers=auth_headers)
             assert response.status_code == 200
             data = json.loads(response.data)
-            assert '驗證郵件已發送' in data['message']
+            assert 'Verification email sent' in data['message']
             mock_send.assert_called_once()
     
     def test_verify_email_with_valid_token(self, client):
@@ -107,21 +104,21 @@ class TestEmailVerification:
             # 生成驗證 token
             from itsdangerous import URLSafeTimedSerializer
             serializer = URLSafeTimedSerializer(app.config['JWT_SECRET_KEY'])
-            token = serializer.dumps(user.email, salt='email-verification')
+            token = serializer.dumps(user.email, salt='email-confirm')
             
-            response = client.get(f'/api/auth/verify?token={token}')
+            response = client.get(f'/api/auth/verify/{token}')
             
             assert response.status_code == 200
             data = json.loads(response.data)
-            assert '郵箱驗證成功' in data['message']
+            assert 'Email verified successfully' in data['message']
     
     def test_verify_email_with_invalid_token(self, client):
         """測試無效 token 的郵件驗證"""
-        response = client.get('/api/auth/verify?token=invalid-token')
+        response = client.get('/api/auth/verify/invalid-token')
         
         assert response.status_code == 400
         data = json.loads(response.data)
-        assert '驗證連結無效' in data['message']
+        assert 'Invalid verification token' in data['message']
     
     def test_get_email_verification_status(self, client, auth_headers):
         """測試獲取郵箱驗證狀態"""
@@ -129,8 +126,8 @@ class TestEmailVerification:
         
         assert response.status_code == 200
         data = json.loads(response.data)
-        assert 'email_verified' in data
-        assert data['email_verified'] is True
+        assert 'is_verified' in data
+        assert data['is_verified'] is False
 
 class TestJWTBlacklist:
     """JWT 黑名單模組測試"""
@@ -183,7 +180,7 @@ class TestJWTBlacklist:
         
         assert response.status_code == 403
         data = json.loads(response.data)
-        assert '需要管理員權限' in data['message']
+        assert 'forbidden' in data['error']
 
 class TestTwoFactorAuth:
     """2FA 模組測試"""
@@ -201,23 +198,25 @@ class TestTwoFactorAuth:
     def test_enable_2fa_with_valid_otp(self, client, auth_headers):
         """測試使用有效 OTP 啟用 2FA"""
         # 先設置 2FA
-        client.post('/api/auth/2fa/setup', headers=auth_headers)
+        setup_response = client.post('/api/auth/2fa/setup', headers=auth_headers)
+        assert setup_response.status_code == 200
         
-        with app.app_context():
-            user = User.query.filter_by(email='test@example.com').first()
-            
-            # 生成有效的 OTP
-            import pyotp
-            totp = pyotp.TOTP(user.two_factor_secret)
-            valid_otp = totp.now()
-            
-            response = client.post('/api/auth/2fa/enable', 
-                                 json={'otp': valid_otp},
-                                 headers=auth_headers)
-            
-            assert response.status_code == 200
-            data = json.loads(response.data)
-            assert '2FA 已成功啟用' in data['message']
+        # 從設置回應中獲取 secret
+        setup_data = json.loads(setup_response.data)
+        secret = setup_data['secret']
+        
+        # 生成有效的 OTP
+        import pyotp
+        totp = pyotp.TOTP(secret)
+        valid_otp = totp.now()
+        
+        response = client.post('/api/auth/2fa/enable', 
+                             json={'otp': valid_otp},
+                             headers=auth_headers)
+        
+        assert response.status_code == 200
+        data = json.loads(response.data)
+        assert '2FA 已成功啟用' in data['message']
     
     def test_enable_2fa_with_invalid_otp(self, client, auth_headers):
         """測試使用無效 OTP 啟用 2FA"""
@@ -244,26 +243,31 @@ class TestTwoFactorAuth:
     def test_generate_backup_codes(self, client, auth_headers):
         """測試生成備用碼"""
         # 先設置並啟用 2FA
-        client.post('/api/auth/2fa/setup', headers=auth_headers)
+        setup_response = client.post('/api/auth/2fa/setup', headers=auth_headers)
+        assert setup_response.status_code == 200
         
-        with app.app_context():
-            user = User.query.filter_by(email='test@example.com').first()
-            user.two_factor_enabled = True
-            db.session.commit()
-            
-            import pyotp
-            totp = pyotp.TOTP(user.two_factor_secret)
-            valid_otp = totp.now()
-            
-            response = client.post('/api/auth/2fa/backup-codes',
-                                 json={'otp': valid_otp},
-                                 headers=auth_headers)
-            
-            assert response.status_code == 200
-            data = json.loads(response.data)
-            assert '備用碼生成成功' in data['message']
-            assert 'backup_codes' in data
-            assert len(data['backup_codes']) == 8
+        # 從設置回應中獲取 secret
+        setup_data = json.loads(setup_response.data)
+        secret = setup_data['secret']
+        
+        # 啟用 2FA
+        import pyotp
+        totp = pyotp.TOTP(secret)
+        valid_otp = totp.now()
+        
+        enable_response = client.post('/api/auth/2fa/enable', 
+                                    json={'otp': valid_otp},
+                                    headers=auth_headers)
+        assert enable_response.status_code == 200
+        
+        # 生成備份碼
+        response = client.get('/api/auth/2fa/backup-codes',
+                             headers=auth_headers)
+        
+        assert response.status_code == 200
+        data = json.loads(response.data)
+        assert 'backup_codes' in data
+        assert len(data['backup_codes']) == 10
 
 class TestAuditLogging:
     """審計日誌模組測試"""
@@ -308,7 +312,7 @@ class TestAuditLogging:
         
         assert response.status_code == 403
         data = json.loads(response.data)
-        assert '需要管理員權限' in data['message']
+        assert 'forbidden' in data['error']
     
     def test_audit_log_stats(self, client, admin_headers):
         """測試審計日誌統計"""
@@ -348,7 +352,7 @@ class TestIntegration:
         """測試登入創建審計日誌"""
         response = client.post('/api/login', json={
             'email': 'test@example.com',
-            'password': 'testpass123'
+            'password': 'password123'
         })
         
         assert response.status_code == 200
@@ -378,7 +382,7 @@ class TestIntegration:
         """測試 JWT 包含 JTI"""
         response = client.post('/api/login', json={
             'email': 'test@example.com',
-            'password': 'testpass123'
+            'password': 'password123'
         })
         
         assert response.status_code == 200

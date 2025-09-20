@@ -43,7 +43,7 @@ class JWTBlacklist(db.Model):
             if token.expires_at < datetime.utcnow():
                 print(f"[JWT_BLACKLIST] Token expired, removing from blacklist: {jti}")
                 db.session.delete(token)
-                db.session.commit()
+                # db.session.commit() # Removed to avoid side effects
                 return False
 
             print(f"[JWT_BLACKLIST] Token is blacklisted: {jti}")

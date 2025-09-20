@@ -19,6 +19,7 @@ class User(db.Model):
     # 2FA 相關欄位
     two_factor_secret = db.Column(db.String(32), nullable=True)
     two_factor_enabled = db.Column(db.Boolean, default=False)
+    two_factor_backup_codes = db.Column(db.Text, nullable=True)
     
     # 多租戶相關欄位
     tenant_id = db.Column(db.Integer, db.ForeignKey('tenants.id'), nullable=True)
