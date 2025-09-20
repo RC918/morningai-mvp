@@ -1,0 +1,12 @@
+{
+  "required": [
+    "VITE_API_BASE_URL",
+    "VITE_SB_URL",
+    "VITE_SB_ANON_KEY"
+  ],
+  "optional": [
+    "VITE_APP_ENV",
+    "VITE_DEBUG"
+  ],
+  "description": "Web 前端必要和可選環境變數配置"
+}

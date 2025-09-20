@@ -1,0 +1,78 @@
+{
+  "timestamp": "2025-09-20T16:22:23.125819Z",
+  "summary": {
+    "total_tests": 9,
+    "passed_tests": 5,
+    "failed_tests": 4,
+    "success_rate": 55.55555555555556,
+    "high_severity_failures": 0,
+    "medium_severity_failures": 0
+  },
+  "test_results": [
+    {
+      "test_name": "管理員登入",
+      "success": true,
+      "details": "成功獲取管理員 token",
+      "severity": "INFO",
+      "timestamp": "2025-09-20T16:22:20.026484Z"
+    },
+    {
+      "test_name": "普通用戶登入",
+      "success": false,
+      "details": "失敗: {'status_code': 401, 'url': 'https://morningai-mvp.onrender.com/api/login', 'method': 'POST', 'json': {'message': '郵箱/用戶名或密碼錯誤'}}",
+      "severity": "ERROR",
+      "timestamp": "2025-09-20T16:22:20.885927Z"
+    },
+    {
+      "test_name": "越權測試",
+      "success": false,
+      "details": "無法獲取普通用戶 token",
+      "severity": "ERROR",
+      "timestamp": "2025-09-20T16:22:20.885985Z"
+    },
+    {
+      "test_name": "黑名單 token 測試",
+      "success": false,
+      "details": "無法獲取用戶 token",
+      "severity": "ERROR",
+      "timestamp": "2025-09-20T16:22:20.885999Z"
+    },
+    {
+      "test_name": "RLS 政策測試",
+      "success": false,
+      "details": "無法獲取用戶 token",
+      "severity": "ERROR",
+      "timestamp": "2025-09-20T16:22:20.886008Z"
+    },
+    {
+      "test_name": "SQL 注入防護 ('; DROP TABLE users;...)",
+      "success": true,
+      "details": "狀態碼: 401",
+      "severity": "INFO",
+      "timestamp": "2025-09-20T16:22:21.544604Z"
+    },
+    {
+      "test_name": "SQL 注入防護 (' OR '1'='1...)",
+      "success": true,
+      "details": "狀態碼: 401",
+      "severity": "INFO",
+      "timestamp": "2025-09-20T16:22:22.104507Z"
+    },
+    {
+      "test_name": "SQL 注入防護 (admin'; --...)",
+      "success": true,
+      "details": "狀態碼: 401",
+      "severity": "INFO",
+      "timestamp": "2025-09-20T16:22:22.618200Z"
+    },
+    {
+      "test_name": "SQL 注入防護 (1' UNION SELECT * FR...)",
+      "success": true,
+      "details": "狀態碼: 401",
+      "severity": "INFO",
+      "timestamp": "2025-09-20T16:22:23.125755Z"
+    }
+  ],
+  "high_severity_failures": [],
+  "medium_severity_failures": []
+}

@@ -1,0 +1,133 @@
+{
+  "timestamp": "2025-09-20T16:20:23.522410Z",
+  "api_url": "https://morningai-mvp.onrender.com",
+  "web_url": "https://morningai-mvp-web.vercel.app",
+  "total_tests": 3,
+  "passed_tests": 3,
+  "failed_tests": 0,
+  "success_rate": 100.0,
+  "results": [
+    {
+      "url": "https://morningai-mvp-web.vercel.app/",
+      "status_code": 200,
+      "expected_status": 200,
+      "success": true,
+      "response_time": 0.119365,
+      "headers": {
+        "Accept-Ranges": "bytes",
+        "Access-Control-Allow-Origin": "*",
+        "Age": "0",
+        "Cache-Control": "public, max-age=0, must-revalidate",
+        "Content-Disposition": "inline",
+        "Content-Length": "472",
+        "Content-Type": "text/html; charset=utf-8",
+        "Date": "Sat, 20 Sep 2025 16:20:22 GMT",
+        "Etag": "\"634c5ba8bc3913ea0f2f7b9a585d5532\"",
+        "Last-Modified": "Sat, 20 Sep 2025 16:20:22 GMT",
+        "Server": "Vercel",
+        "Strict-Transport-Security": "max-age=63072000; includeSubDomains; preload",
+        "X-Vercel-Cache": "HIT",
+        "X-Vercel-Id": "iad1::drrsw-1758385222687-9507d7d00933"
+      },
+      "content_length": 472,
+      "text_response": "<!DOCTYPE html>\n<html lang=\"zh-TW\">\n  <head>\n    <meta charset=\"UTF-8\" />\n    <link rel=\"icon\" type=\"image/svg+xml\" href=\"/vite.svg\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n    <title>MorningAI MVP – Web</title>\n    <script type=\"module\" crossorigin src=\"/assets/index-BvOHduR5.js\"></script>\n    <link rel=\"stylesheet\" crossorigin href=\"/assets/index-DX5An_EK.css\">\n  </head>\n  <body>\n    <div id=\"root\"></div>\n  </body>\n</html>\n\n",
+      "test_name": "Web 首頁"
+    },
+    {
+      "url": "https://morningai-mvp.onrender.com/health",
+      "status_code": 200,
+      "expected_status": 200,
+      "success": true,
+      "response_time": 0.409826,
+      "headers": {
+        "Date": "Sat, 20 Sep 2025 16:20:23 GMT",
+        "Content-Type": "application/json",
+        "Content-Length": "257",
+        "Connection": "keep-alive",
+        "access-control-allow-origin": "http://localhost:3000",
+        "Content-Encoding": "br",
+        "rndr-id": "92011059-fd40-4e7c",
+        "vary": "Origin, Accept-Encoding",
+        "x-render-origin-server": "gunicorn",
+        "cf-cache-status": "DYNAMIC",
+        "Server": "cloudflare",
+        "CF-RAY": "9822a65a8a50c5ce-IAD",
+        "alt-svc": "h3=\":443\"; ma=86400"
+      },
+      "content_length": 436,
+      "json_response": {
+        "docs_access": {
+          "browser": "Visit https://morningai-mvp.onrender.com/health with browser",
+          "endpoints": {
+            "admin": {
+              "users": "/api/admin/users"
+            },
+            "auth": {
+              "login": "/api/login",
+              "logout": "/api/auth/logout",
+              "profile": "/api/profile",
+              "register": "/api/register"
+            },
+            "health": "/health"
+          },
+          "html": "https://morningai-mvp.onrender.com/health?docs=true"
+        },
+        "message": "API is healthy",
+        "ok": true,
+        "status": "ok",
+        "timestamp": "2025-09-20T05:25:00Z",
+        "version": "1.0.3"
+      },
+      "test_name": "API 健康檢查"
+    },
+    {
+      "url": "https://morningai-mvp.onrender.com/",
+      "status_code": 200,
+      "expected_status": 200,
+      "success": true,
+      "response_time": 0.354727,
+      "headers": {
+        "Date": "Sat, 20 Sep 2025 16:20:23 GMT",
+        "Content-Type": "application/json",
+        "Content-Length": "348",
+        "Connection": "keep-alive",
+        "access-control-allow-origin": "http://localhost:3000",
+        "Content-Encoding": "br",
+        "rndr-id": "f5b69661-2c77-4803",
+        "vary": "Origin, Accept-Encoding",
+        "x-render-origin-server": "gunicorn",
+        "cf-cache-status": "DYNAMIC",
+        "Server": "cloudflare",
+        "CF-RAY": "9822a65d2c8bd6b3-IAD",
+        "alt-svc": "h3=\":443\"; ma=86400"
+      },
+      "content_length": 531,
+      "json_response": {
+        "docs_access": [
+          "Visit https://morningai-mvp.onrender.com/?format=html",
+          "Visit with browser (HTML Accept header)",
+          "Use /docs endpoint (when deployed)"
+        ],
+        "docs_available": true,
+        "endpoints": {
+          "admin": {
+            "users": "/api/admin/users"
+          },
+          "auth": {
+            "login": "/api/login",
+            "logout": "/api/auth/logout",
+            "profile": "/api/profile",
+            "register": "/api/register"
+          },
+          "health": "/health"
+        },
+        "message": "Welcome to MorningAI MVP API!",
+        "status": "✅ JWT Blacklist Fixed | ❌ /docs endpoint pending deployment",
+        "timestamp": "2025-09-20T05:15:00Z",
+        "version": "1.0.2"
+      },
+      "test_name": "API 根路徑"
+    }
+  ],
+  "failed_test_names": []
+}

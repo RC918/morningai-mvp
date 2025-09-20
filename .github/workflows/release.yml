@@ -1,24 +1,52 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - 'v*.*.*'
+  repository_dispatch:
+    types: [safeguard-approved-release]
   workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to deploy'
+        required: true
+        type: string
+      is_hotfix:
+        description: 'Is this a hotfix deployment'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+      continue_on_error:
+        description: 'Continue on error (hotfix only)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
 
 permissions:
   contents: write
 
+env:
+  DEPLOY_TAG: ${{ github.event.client_payload.tag || github.event.inputs.tag || github.ref_name }}
+  IS_HOTFIX: ${{ github.event.client_payload.is_hotfix || github.event.inputs.is_hotfix || 'false' }}
+  CONTINUE_ON_ERROR: ${{ github.event.client_payload.continue_on_error || github.event.inputs.continue_on_error || 'false' }}
+  TIMEOUT_MINUTES: ${{ github.event.client_payload.timeout_minutes || '15' }}
+
 jobs:
   release_api:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: ${{ fromJson(env.TIMEOUT_MINUTES) }}
     environment: production
+    continue-on-error: ${{ env.IS_HOTFIX == 'true' && env.CONTINUE_ON_ERROR == 'true' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ env.DEPLOY_TAG }}
 
       - name: Get previous tag
         id: previoustag
@@ -123,11 +151,14 @@ jobs:
 
   release_web:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: ${{ fromJson(env.TIMEOUT_MINUTES) }}
     environment: production
+    continue-on-error: ${{ env.IS_HOTFIX == 'true' && env.CONTINUE_ON_ERROR == 'true' }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_TAG }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

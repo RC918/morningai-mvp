@@ -1,0 +1,21 @@
+{
+  "required": [
+    "DATABASE_URL",
+    "JWT_SECRET_KEY",
+    "SB_URL",
+    "SB_SERVICE_ROLE_KEY",
+    "SB_JWT_SECRET",
+    "EMAIL_FROM",
+    "SMTP_HOST",
+    "SMTP_PORT",
+    "SMTP_USER",
+    "SMTP_PASS"
+  ],
+  "optional": [
+    "REDIS_URL",
+    "SECURITY_PASSWORD_SALT",
+    "OPENAI_API_KEY",
+    "OPENAI_API_BASE"
+  ],
+  "description": "API 後端必要和可選環境變數配置"
+}

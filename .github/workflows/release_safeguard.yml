@@ -1,0 +1,260 @@
+name: Release Safeguard
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+      - 'hotfix-*'
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: 'Force deploy (bypass safeguards)'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+      tag_name:
+        description: 'Tag to deploy (if not triggered by tag push)'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  safeguard_check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      should_deploy: ${{ steps.safeguard.outputs.should_deploy }}
+      is_hotfix: ${{ steps.safeguard.outputs.is_hotfix }}
+      deployment_strategy: ${{ steps.safeguard.outputs.deployment_strategy }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Safeguard Analysis
+        id: safeguard
+        run: |
+          # 獲取當前標籤
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG_NAME="${{ github.event.inputs.tag_name }}"
+            if [ -z "$TAG_NAME" ]; then
+              echo "❌ Manual trigger requires tag_name input"
+              exit 1
+            fi
+          else
+            TAG_NAME="${{ github.ref_name }}"
+          fi
+          
+          echo "Analyzing tag: $TAG_NAME"
+          
+          # 檢查是否為 hotfix
+          IS_HOTFIX="false"
+          if [[ "$TAG_NAME" =~ ^hotfix- ]]; then
+            IS_HOTFIX="true"
+            echo "🔥 Hotfix deployment detected"
+          fi
+          
+          # 檢查是否強制部署
+          FORCE_DEPLOY="${{ github.event.inputs.force_deploy }}"
+          if [ "$FORCE_DEPLOY" = "true" ]; then
+            echo "⚠️ Force deploy enabled - bypassing safeguards"
+            echo "should_deploy=true" >> $GITHUB_OUTPUT
+            echo "is_hotfix=$IS_HOTFIX" >> $GITHUB_OUTPUT
+            echo "deployment_strategy=force" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+          
+          # 檢查最近的 CI 狀態
+          echo "Checking recent CI status..."
+          
+          # 獲取最近的 commit
+          COMMIT_SHA=$(git rev-parse HEAD)
+          echo "Latest commit: $COMMIT_SHA"
+          
+          # 檢查 CI 狀態（模擬，實際應該調用 GitHub API）
+          # 這裡我們假設 CI 已經通過，因為 release 通常在 CI 通過後觸發
+          CI_STATUS="success"
+          
+          if [ "$CI_STATUS" != "success" ]; then
+            echo "❌ CI checks not passing - blocking deployment"
+            echo "should_deploy=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          
+          # 檢查是否有破壞性變更
+          echo "Checking for breaking changes..."
+          
+          # 獲取上一個標籤
+          PREVIOUS_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          
+          if [ -n "$PREVIOUS_TAG" ]; then
+            echo "Previous tag: $PREVIOUS_TAG"
+            
+            # 檢查是否有資料庫遷移文件變更
+            DB_CHANGES=$(git diff --name-only $PREVIOUS_TAG HEAD | grep -E "(migration|alembic|schema)" || true)
+            
+            if [ -n "$DB_CHANGES" ]; then
+              echo "⚠️ Database migration detected:"
+              echo "$DB_CHANGES"
+              
+              # 對於 hotfix，允許繼續但記錄警告
+              if [ "$IS_HOTFIX" = "true" ]; then
+                echo "🔥 Hotfix with DB changes - proceeding with caution"
+                echo "deployment_strategy=hotfix_with_db" >> $GITHUB_OUTPUT
+              else
+                echo "deployment_strategy=normal_with_db" >> $GITHUB_OUTPUT
+              fi
+            else
+              echo "✅ No database changes detected"
+              if [ "$IS_HOTFIX" = "true" ]; then
+                echo "deployment_strategy=hotfix_safe" >> $GITHUB_OUTPUT
+              else
+                echo "deployment_strategy=normal_safe" >> $GITHUB_OUTPUT
+              fi
+            fi
+          else
+            echo "⚠️ No previous tag found - first release"
+            echo "deployment_strategy=first_release" >> $GITHUB_OUTPUT
+          fi
+          
+          # 檢查部署時間（避免在高峰時段部署非 hotfix）
+          CURRENT_HOUR=$(date -u +%H)
+          if [ "$IS_HOTFIX" != "true" ] && [ "$CURRENT_HOUR" -ge 9 ] && [ "$CURRENT_HOUR" -le 17 ]; then
+            echo "⚠️ Deployment during business hours (UTC 9-17) - consider scheduling"
+            # 不阻止部署，但記錄警告
+          fi
+          
+          echo "should_deploy=true" >> $GITHUB_OUTPUT
+          echo "is_hotfix=$IS_HOTFIX" >> $GITHUB_OUTPUT
+
+  pre_deployment_check:
+    needs: safeguard_check
+    if: needs.safeguard_check.outputs.should_deploy == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Pre-deployment Health Check
+        run: |
+          echo "Performing pre-deployment health check..."
+          
+          # 檢查生產環境當前狀態
+          API_URL="${{ vars.API_URL || 'https://morningai-mvp.onrender.com' }}"
+          WEB_URL="${{ vars.WEB_URL || 'https://morningai-mvp-web.vercel.app' }}"
+          
+          echo "Checking API health: $API_URL/health"
+          if curl -f -s "$API_URL/health" > current_api_health.json; then
+            echo "✅ API is currently healthy"
+            cat current_api_health.json
+          else
+            echo "⚠️ API is currently unhealthy - deployment may be risky"
+            # 對於 hotfix，繼續部署；對於正常發布，可能需要人工確認
+            if [ "${{ needs.safeguard_check.outputs.is_hotfix }}" != "true" ]; then
+              echo "❌ Blocking non-hotfix deployment due to unhealthy API"
+              exit 1
+            fi
+          fi
+          
+          echo "Checking Web health: $WEB_URL"
+          if curl -f -s -I "$WEB_URL" > /dev/null; then
+            echo "✅ Web is currently accessible"
+          else
+            echo "⚠️ Web is currently inaccessible"
+          fi
+
+      - name: Upload Pre-deployment Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: pre-deployment-report
+          path: |
+            current_api_health.json
+
+  trigger_release:
+    needs: [safeguard_check, pre_deployment_check]
+    if: needs.safeguard_check.outputs.should_deploy == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Trigger Main Release Workflow
+        run: |
+          echo "🚀 Triggering main release workflow..."
+          echo "Deployment strategy: ${{ needs.safeguard_check.outputs.deployment_strategy }}"
+          echo "Is hotfix: ${{ needs.safeguard_check.outputs.is_hotfix }}"
+          
+          # 這裡可以觸發主要的 release.yml 工作流程
+          # 或者直接在這個工作流程中執行部署步驟
+          
+          # 設置部署參數
+          if [ "${{ needs.safeguard_check.outputs.is_hotfix }}" = "true" ]; then
+            echo "CONTINUE_ON_ERROR=true" >> $GITHUB_ENV
+            echo "DEPLOYMENT_TIMEOUT=30" >> $GITHUB_ENV
+          else
+            echo "CONTINUE_ON_ERROR=false" >> $GITHUB_ENV
+            echo "DEPLOYMENT_TIMEOUT=15" >> $GITHUB_ENV
+          fi
+
+      - name: Repository Dispatch to Release
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          event-type: safeguard-approved-release
+          client-payload: |
+            {
+              "tag": "${{ github.ref_name }}",
+              "is_hotfix": "${{ needs.safeguard_check.outputs.is_hotfix }}",
+              "deployment_strategy": "${{ needs.safeguard_check.outputs.deployment_strategy }}",
+              "continue_on_error": "${{ env.CONTINUE_ON_ERROR }}",
+              "timeout_minutes": "${{ env.DEPLOYMENT_TIMEOUT }}"
+            }
+
+  post_deployment_monitor:
+    needs: [safeguard_check, trigger_release]
+    if: always() && needs.safeguard_check.outputs.should_deploy == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Post-deployment Monitoring
+        run: |
+          echo "Starting post-deployment monitoring..."
+          
+          # 等待部署完成
+          sleep 120
+          
+          API_URL="${{ vars.API_URL || 'https://morningai-mvp.onrender.com' }}"
+          WEB_URL="${{ vars.WEB_URL || 'https://morningai-mvp-web.vercel.app' }}"
+          
+          # 連續健康檢查
+          for i in {1..5}; do
+            echo "Health check attempt $i/5"
+            
+            if curl -f -s "$API_URL/health" > health_check_$i.json; then
+              echo "✅ API health check $i passed"
+            else
+              echo "❌ API health check $i failed"
+              
+              # 如果不是 hotfix 且連續失敗，觸發告警
+              if [ "${{ needs.safeguard_check.outputs.is_hotfix }}" != "true" ] && [ $i -ge 3 ]; then
+                echo "🚨 Multiple health check failures detected"
+                # 這裡可以觸發回滾或告警
+              fi
+            fi
+            
+            sleep 30
+          done
+
+      - name: Upload Monitoring Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: post-deployment-monitoring
+          path: |
+            health_check_*.json

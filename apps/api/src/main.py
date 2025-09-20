@@ -26,7 +26,37 @@ app = Flask(__name__)
 # 立即註冊健康檢查端點，確保它在任何耗時操作前可用
 @app.route("/health")
 def health_check():
-    """健康檢查端點，支援文檔模式"""
+    """健康檢查端點，支援文檔模式和版本信息"""
+    import subprocess
+    import os
+    from datetime import datetime
+    
+    # 獲取版本信息
+    try:
+        # 獲取 Git commit hash
+        commit_hash = subprocess.check_output(['git', 'rev-parse', 'HEAD'], 
+                                            cwd=os.path.dirname(os.path.abspath(__file__)), 
+                                            stderr=subprocess.DEVNULL).decode().strip()
+        short_commit = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], 
+                                             cwd=os.path.dirname(os.path.abspath(__file__)), 
+                                             stderr=subprocess.DEVNULL).decode().strip()
+        branch = subprocess.check_output(['git', 'branch', '--show-current'], 
+                                       cwd=os.path.dirname(os.path.abspath(__file__)), 
+                                       stderr=subprocess.DEVNULL).decode().strip()
+    except:
+        commit_hash = "unknown"
+        short_commit = "unknown"
+        branch = "unknown"
+    
+    # 版本信息
+    version_info = {
+        "version": "1.0.4",  # 增加版本號
+        "commit": short_commit,
+        "commit_full": commit_hash,
+        "branch": branch,
+        "build_time": datetime.utcnow().isoformat() + "Z"
+    }
+    
     # 檢查是否請求文檔格式
     docs_param = request.args.get('docs', '').lower()
     format_param = request.args.get('format', '').lower()
@@ -127,12 +157,13 @@ def health_check():
 </body>
 </html>"""
     
-    # 默認健康檢查回應，包含文檔訪問信息
+    # 默認健康檢查回應，包含版本和文檔訪問信息
     return jsonify({
         "ok": True, 
         "message": "API is healthy",
-        "version": "1.0.3",
-        "timestamp": "2025-09-20T05:25:00Z",
+        "status": "ok",
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+        **version_info,  # 包含版本、commit、branch 信息
         "docs_access": {
             "html": "https://morningai-mvp.onrender.com/health?docs=true",
             "browser": "Visit https://morningai-mvp.onrender.com/health with browser",
@@ -148,8 +179,7 @@ def health_check():
                     "users": "/api/admin/users"
                 }
             }
-        },
-        "status": "ok"
+        }
     })
 
 CORS(app, origins=[

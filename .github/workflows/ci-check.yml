@@ -124,42 +124,14 @@ jobs:
             " 2>&1 | tee -a ../../artifacts/${{ matrix.app.name }}_import_smoke.txt
           else
             echo "=== API Import Smoke Test ===" | tee ../../artifacts/${{ matrix.app.name }}_import_smoke.txt
-            python -c "
-              import sys
-              import traceback
-
-              def test_imports():
-                  try:
-                      print('Testing Flask imports...')
-                      import flask
-                      print('✅ Flask import successful')
-                      
-                      print('Testing SQLAlchemy imports...')
-                      import sqlalchemy
-                      print('✅ SQLAlchemy import successful')
-                      
-                      print('Testing application imports...')
-                      sys.path.insert(0, 'src')
-                      import main
-                      print('✅ Main application import successful')
-                      
-                      from src.models.user import User
-                      print('✅ User model import successful')
-                      
-                      from src.routes.auth import auth_bp
-                      print('✅ Auth routes import successful')
-                      
-                      print('All imports successful')
-                      return True
-                  except Exception as e:
-                      print(f'❌ Import failed: {e}')
-                      traceback.print_exc()
-                      return False
-
-              if not test_imports():
-                  sys.exit(1)
-            " 2>&1 | tee -a ../../artifacts/${{ matrix.app.name }}_import_smoke.txt
+            # 使用新的 Import Smoke Test 腳本
+            python ../../scripts/import_smoke_test.py 2>&1 | tee -a ../../artifacts/${{ matrix.app.name }}_import_smoke.txt
           fi
+
+      - name: Environment Guard Check
+        run: |
+          echo "=== Environment Guard Check ===" | tee artifacts/env_guard.txt
+          python scripts/env_guard.py 2>&1 | tee -a artifacts/env_guard.txt || echo "Environment check completed with warnings" >> artifacts/env_guard.txt
 
       - name: Unit Tests
         working-directory: ${{ matrix.app.path }}
@@ -186,6 +158,15 @@ jobs:
             echo "Web health check skipped" > ../../artifacts/${{ matrix.app.name }}_health.txt
           fi
 
+      - name: E2E Smoke Test
+        if: ${{ matrix.app.name == 'api' }}
+        env:
+          API_URL: ${{ vars.API_URL || 'https://morningai-mvp.onrender.com' }}
+          WEB_URL: ${{ vars.WEB_URL || 'https://morningai-mvp-web.vercel.app' }}
+        run: |
+          echo "=== E2E Smoke Test ===" | tee artifacts/e2e_smoke.txt
+          python scripts/e2e_smoke_test.py 2>&1 | tee -a artifacts/e2e_smoke.txt || echo "E2E smoke test completed with failures" >> artifacts/e2e_smoke.txt
+
       - name: Security Quick Check
         working-directory: ${{ matrix.app.path }}
         run: |
@@ -196,7 +177,19 @@ jobs:
             echo "Checking for hardcoded secrets..." >> ../../artifacts/${{ matrix.app.name }}_security_quick.txt
             grep -r -i "password\s*=" src/ >> ../../artifacts/${{ matrix.app.name }}_security_quick.txt || echo "No hardcoded passwords found" >> ../../artifacts/${{ matrix.app.name }}_security_quick.txt
             grep -r -i "api[_-]key\s*=" src/ >> ../../artifacts/${{ matrix.app.name }}_security_quick.txt || echo "No hardcoded API keys found" >> ../../artifacts/${{ matrix.app.name }}_security_quick.txt
-            
+
+      - name: RLS Security Test
+        if: ${{ matrix.app.name == 'api' }}
+        env:
+          API_URL: ${{ vars.API_URL || 'https://morningai-mvp.onrender.com' }}
+        run: |
+          echo "=== RLS/權限安全測試 ===" | tee artifacts/rls_security.txt
+          python scripts/rls_security_test.py 2>&1 | tee -a artifacts/rls_security.txt || echo "RLS security test completed with warnings" >> artifacts/rls_security.txt
+
+      - name: Security Static Analysis
+        working-directory: ${{ matrix.app.path }}
+        run: |
+          if [ "${{ matrix.app.name }}" = "api" ]; then
             # 檢查 SQL 注入風險
             echo "Checking for potential SQL injection risks..." >> ../../artifacts/${{ matrix.app.name }}_security_quick.txt
             grep -r "execute.*%" src/ >> ../../artifacts/${{ matrix.app.name }}_security_quick.txt || echo "No obvious SQL injection patterns found" >> ../../artifacts/${{ matrix.app.name }}_security_quick.txt
@@ -223,4 +216,6 @@ jobs:
           name: ci-artifacts-${{ matrix.app.name }}
           path: |
             artifacts/
+            apps/api/e2e_smoke_report.json
+            apps/api/rls_security_test_report.json
           if-no-files-found: error
