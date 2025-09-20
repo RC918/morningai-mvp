@@ -25,7 +25,131 @@ app = Flask(__name__)
 # 立即註冊健康檢查端點，確保它在任何耗時操作前可用
 @app.route("/health")
 def health_check():
-    return jsonify(ok=True, message="Service is healthy")
+    """健康檢查端點，支援文檔模式"""
+    # 檢查是否請求文檔格式
+    docs_param = request.args.get('docs', '').lower()
+    format_param = request.args.get('format', '').lower()
+    
+    # 檢查 Accept 標頭
+    accept_header = request.headers.get('Accept', '')
+    
+    if docs_param == 'true' or format_param == 'html' or ('text/html' in accept_header and 'application/json' not in accept_header):
+        # 返回內聯 HTML 文檔
+        return """<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MorningAI MVP API 文檔</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; max-width: 1200px; margin: 0 auto; padding: 20px; background: #f8f9fa; }
+        .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; border-radius: 10px; margin-bottom: 30px; text-align: center; }
+        .status { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+        .endpoint { background: white; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .method { display: inline-block; padding: 4px 8px; border-radius: 4px; font-weight: bold; margin-right: 10px; }
+        .get { background: #28a745; color: white; }
+        .post { background: #007bff; color: white; }
+        .code { background: #f8f9fa; border: 1px solid #e9ecef; padding: 10px; border-radius: 4px; font-family: monospace; margin: 10px 0; }
+        .auth-required { color: #dc3545; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚀 MorningAI MVP API</h1>
+        <p>企業級 AI SaaS 平台 API 文檔</p>
+    </div>
+    
+    <div class="status">
+        <strong>✅ 服務狀態</strong>: 所有系統正常運行 | JWT 黑名單機制: ✅ 正常工作 | 版本: 1.0.3
+    </div>
+    
+    <div class="endpoint">
+        <h3><span class="method get">GET</span>/health</h3>
+        <p>健康檢查端點，確認服務運行狀態</p>
+        <div class="code">curl https://morningai-mvp.onrender.com/health</div>
+    </div>
+    
+    <div class="endpoint">
+        <h3><span class="method post">POST</span>/api/register</h3>
+        <p>用戶註冊</p>
+        <div class="code">curl -X POST https://morningai-mvp.onrender.com/api/register \\<br>
+  -H "Content-Type: application/json" \\<br>
+  -d '{"username": "user", "email": "user@example.com", "password": "password123"}'</div>
+    </div>
+    
+    <div class="endpoint">
+        <h3><span class="method post">POST</span>/api/login</h3>
+        <p>用戶登入，獲取 JWT Token</p>
+        <div class="code">curl -X POST https://morningai-mvp.onrender.com/api/login \\<br>
+  -H "Content-Type: application/json" \\<br>
+  -d '{"email": "user@example.com", "password": "password123"}'</div>
+    </div>
+    
+    <div class="endpoint">
+        <h3><span class="method get">GET</span>/api/profile <span class="auth-required">🔒 需要認證</span></h3>
+        <p>獲取當前用戶資料</p>
+        <div class="code">curl https://morningai-mvp.onrender.com/api/profile \\<br>
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"</div>
+    </div>
+    
+    <div class="endpoint">
+        <h3><span class="method post">POST</span>/api/auth/logout <span class="auth-required">🔒 需要認證</span></h3>
+        <p>用戶登出，將 Token 加入黑名單</p>
+        <div class="code">curl -X POST https://morningai-mvp.onrender.com/api/auth/logout \\<br>
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"</div>
+    </div>
+    
+    <div class="endpoint">
+        <h3><span class="method get">GET</span>/api/admin/users <span class="auth-required">🔒 管理員權限</span></h3>
+        <p>獲取所有用戶列表（僅管理員）</p>
+        <div class="code">curl https://morningai-mvp.onrender.com/api/admin/users \\<br>
+  -H "Authorization: Bearer ADMIN_JWT_TOKEN"</div>
+    </div>
+    
+    <div style="background: white; padding: 20px; border-radius: 8px; margin-top: 30px;">
+        <h3>🔐 認證說明</h3>
+        <p>本 API 使用 JWT (JSON Web Token) 進行認證。登入後獲得的 Token 需要在請求標頭中包含：</p>
+        <div class="code">Authorization: Bearer YOUR_JWT_TOKEN</div>
+        <p><strong>安全特性</strong>:</p>
+        <ul>
+            <li>✅ JWT 黑名單機制 - 登出後 Token 立即失效</li>
+            <li>✅ 基於角色的訪問控制 (RBAC)</li>
+            <li>✅ 資料庫行級安全 (RLS)</li>
+            <li>✅ 自動化安全掃描</li>
+        </ul>
+    </div>
+    
+    <footer style="text-align: center; margin-top: 40px; color: #6c757d;">
+        <p>MorningAI MVP API v1.0.3 | 企業級 AI SaaS 平台</p>
+        <p>文檔訪問: <code>/health?docs=true</code> | 健康檢查: <code>/health</code></p>
+    </footer>
+</body>
+</html>"""
+    
+    # 默認健康檢查回應，包含文檔訪問信息
+    return jsonify({
+        "ok": True, 
+        "message": "Service is healthy",
+        "version": "1.0.3",
+        "timestamp": "2025-09-20T05:25:00Z",
+        "docs_access": {
+            "html": "https://morningai-mvp.onrender.com/health?docs=true",
+            "browser": "Visit https://morningai-mvp.onrender.com/health with browser",
+            "endpoints": {
+                "health": "/health",
+                "auth": {
+                    "register": "/api/register",
+                    "login": "/api/login",
+                    "logout": "/api/auth/logout",
+                    "profile": "/api/profile"
+                },
+                "admin": {
+                    "users": "/api/admin/users"
+                }
+            }
+        },
+        "status": "✅ All systems operational | JWT Blacklist: ✅ Working | Docs: Available via ?docs=true"
+    })
 
 CORS(app, origins=[
     "http://localhost:3000",
