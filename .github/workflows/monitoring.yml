@@ -1,0 +1,248 @@
+name: Continuous Monitoring
+
+on:
+  schedule:
+    # 每 5 分鐘執行一次監控檢查
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+    # 允許手動觸發
+  push:
+    paths:
+      - 'monitoring/**'
+      - '.github/workflows/monitoring.yml'
+
+jobs:
+  health-check:
+    name: Health Check Monitoring
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          pip install aiohttp requests
+      
+      - name: Run health checks
+        id: health_check
+        run: |
+          cd monitoring
+          python3 -c "
+          import asyncio
+          import json
+          from continuous_monitoring import ContinuousMonitor
+          
+          async def run_checks():
+              monitor = ContinuousMonitor('monitoring_config.json')
+              results = await monitor.run_health_checks()
+              
+              # 準備結果摘要
+              total = len(results)
+              healthy = sum(1 for r in results if r.is_healthy)
+              failed = total - healthy
+              
+              print(f'::set-output name=total::{total}')
+              print(f'::set-output name=healthy::{healthy}')
+              print(f'::set-output name=failed::{failed}')
+              
+              # 輸出詳細結果
+              for result in results:
+                  status = '✅' if result.is_healthy else '❌'
+                  print(f'{status} {result.service_name}: {result.status_code} ({result.response_time:.2f}s)')
+                  
+                  if not result.is_healthy:
+                      print(f'   Error: {result.error_message}')
+              
+              # 如果有失敗的服務，設置失敗狀態
+              if failed > 0:
+                  print(f'::error::有 {failed} 個服務異常')
+                  exit(1)
+              else:
+                  print(f'::notice::所有 {total} 個服務運行正常')
+          
+          asyncio.run(run_checks())
+          "
+      
+      - name: Create monitoring report
+        if: always()
+        run: |
+          cat > monitoring_report.md << 'EOF'
+          # 🚀 MorningAI MVP 監控報告
+          
+          **檢查時間**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
+          **工作流程**: ${{ github.workflow }}
+          **觸發事件**: ${{ github.event_name }}
+          
+          ## 📊 服務狀態摘要
+          
+          - **總服務數**: ${{ steps.health_check.outputs.total || '未知' }}
+          - **正常服務**: ${{ steps.health_check.outputs.healthy || '未知' }}
+          - **異常服務**: ${{ steps.health_check.outputs.failed || '未知' }}
+          
+          ## 🔍 詳細檢查結果
+          
+          ### 核心服務
+          
+          | 服務 | 狀態 | URL |
+          |------|------|-----|
+          | 後端健康檢查 | ${{ job.status == 'success' && '✅ 正常' || '❌ 異常' }} | https://morningai-mvp.onrender.com/health |
+          | API 文檔 | ${{ job.status == 'success' && '✅ 正常' || '❌ 異常' }} | https://morningai-mvp.onrender.com/docs/ |
+          | 前端應用 | ${{ job.status == 'success' && '✅ 正常' || '❌ 異常' }} | https://morningai-mvp-web.vercel.app |
+          
+          ## 📈 監控配置
+          
+          - **檢查頻率**: 每 5 分鐘
+          - **超時設定**: 30 秒
+          - **告警閾值**: 連續 3 次失敗
+          
+          ---
+          
+          *此報告由 GitHub Actions 自動生成*
+          EOF
+      
+      - name: Upload monitoring report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: monitoring-report-${{ github.run_number }}
+          path: monitoring_report.md
+          retention-days: 7
+      
+      - name: Send Slack notification on failure
+        if: failure() && github.event_name == 'schedule'
+        uses: 8398a7/action-slack@v3
+        with:
+          status: failure
+          channel: '#alerts'
+          text: |
+            🚨 MorningAI MVP 監控告警
+            
+            有服務檢查失敗，請立即檢查：
+            - 後端: https://morningai-mvp.onrender.com/health
+            - 前端: https://morningai-mvp-web.vercel.app
+            - API 文檔: https://morningai-mvp.onrender.com/docs/
+            
+            檢查時間: $(date -u)
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        continue-on-error: true
+
+  performance-check:
+    name: Performance Monitoring
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: health-check
+    if: success()
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Performance test
+        run: |
+          echo "🚀 執行效能測試..."
+          
+          # 測試後端回應時間
+          echo "測試後端回應時間..."
+          BACKEND_TIME=$(curl -w "%{time_total}" -s -o /dev/null https://morningai-mvp.onrender.com/health)
+          echo "後端回應時間: ${BACKEND_TIME}s"
+          
+          # 測試前端載入時間
+          echo "測試前端載入時間..."
+          FRONTEND_TIME=$(curl -w "%{time_total}" -s -o /dev/null https://morningai-mvp-web.vercel.app)
+          echo "前端載入時間: ${FRONTEND_TIME}s"
+          
+          # 測試 API 文檔載入時間
+          echo "測試 API 文檔載入時間..."
+          DOCS_TIME=$(curl -w "%{time_total}" -s -o /dev/null https://morningai-mvp.onrender.com/docs/)
+          echo "API 文檔載入時間: ${DOCS_TIME}s"
+          
+          # 檢查效能閾值
+          if (( $(echo "$BACKEND_TIME > 5.0" | bc -l) )); then
+            echo "::warning::後端回應時間過長: ${BACKEND_TIME}s"
+          fi
+          
+          if (( $(echo "$FRONTEND_TIME > 3.0" | bc -l) )); then
+            echo "::warning::前端載入時間過長: ${FRONTEND_TIME}s"
+          fi
+          
+          if (( $(echo "$DOCS_TIME > 5.0" | bc -l) )); then
+            echo "::warning::API 文檔載入時間過長: ${DOCS_TIME}s"
+          fi
+          
+          # 輸出效能摘要
+          echo "::notice::效能檢查完成 - 後端: ${BACKEND_TIME}s, 前端: ${FRONTEND_TIME}s, 文檔: ${DOCS_TIME}s"
+
+  security-check:
+    name: Security Headers Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    
+    steps:
+      - name: Check security headers
+        run: |
+          echo "🔒 檢查安全標頭..."
+          
+          # 檢查後端安全標頭
+          echo "檢查後端安全標頭..."
+          curl -I https://morningai-mvp.onrender.com/health | grep -E "(X-Frame-Options|X-Content-Type-Options|Strict-Transport-Security)" || echo "::warning::後端缺少部分安全標頭"
+          
+          # 檢查前端安全標頭
+          echo "檢查前端安全標頭..."
+          curl -I https://morningai-mvp-web.vercel.app | grep -E "(X-Frame-Options|X-Content-Type-Options|Strict-Transport-Security)" || echo "::warning::前端缺少部分安全標頭"
+          
+          echo "✅ 安全檢查完成"
+
+  uptime-summary:
+    name: Generate Uptime Summary
+    runs-on: ubuntu-latest
+    needs: [health-check, performance-check, security-check]
+    if: always()
+    
+    steps:
+      - name: Generate summary
+        run: |
+          echo "📊 生成運行時間摘要..."
+          
+          # 計算成功率
+          HEALTH_STATUS="${{ needs.health-check.result }}"
+          PERF_STATUS="${{ needs.performance-check.result }}"
+          SEC_STATUS="${{ needs.security-check.result }}"
+          
+          SUCCESS_COUNT=0
+          TOTAL_COUNT=3
+          
+          [ "$HEALTH_STATUS" = "success" ] && ((SUCCESS_COUNT++))
+          [ "$PERF_STATUS" = "success" ] && ((SUCCESS_COUNT++))
+          [ "$SEC_STATUS" = "success" ] && ((SUCCESS_COUNT++))
+          
+          SUCCESS_RATE=$((SUCCESS_COUNT * 100 / TOTAL_COUNT))
+          
+          echo "## 🎯 監控摘要報告" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**檢查時間**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "**成功率**: ${SUCCESS_RATE}% (${SUCCESS_COUNT}/${TOTAL_COUNT})" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| 檢查項目 | 狀態 |" >> $GITHUB_STEP_SUMMARY
+          echo "|----------|------|" >> $GITHUB_STEP_SUMMARY
+          echo "| 健康檢查 | ${{ needs.health-check.result == 'success' && '✅ 通過' || '❌ 失敗' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 效能測試 | ${{ needs.performance-check.result == 'success' && '✅ 通過' || '❌ 失敗' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 安全檢查 | ${{ needs.security-check.result == 'success' && '✅ 通過' || '❌ 失敗' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔗 快速連結" >> $GITHUB_STEP_SUMMARY
+          echo "- [後端健康檢查](https://morningai-mvp.onrender.com/health)" >> $GITHUB_STEP_SUMMARY
+          echo "- [API 文檔](https://morningai-mvp.onrender.com/docs/)" >> $GITHUB_STEP_SUMMARY
+          echo "- [前端應用](https://morningai-mvp-web.vercel.app)" >> $GITHUB_STEP_SUMMARY
+          
+          if [ "$SUCCESS_RATE" -lt 100 ]; then
+            echo "::warning::監控檢查成功率: ${SUCCESS_RATE}%，請檢查失敗項目"
+          else
+            echo "::notice::所有監控檢查均通過 ✅"
+          fi

@@ -1,0 +1,84 @@
+{
+  "services": {
+    "backend_health": {
+      "url": "https://morningai-mvp.onrender.com/health",
+      "method": "GET",
+      "timeout": 30,
+      "expected_status": 200,
+      "check_interval": 60,
+      "critical": true,
+      "description": "後端健康檢查端點"
+    },
+    "backend_api_docs": {
+      "url": "https://morningai-mvp.onrender.com/docs/",
+      "method": "GET",
+      "timeout": 15,
+      "expected_status": 200,
+      "check_interval": 300,
+      "critical": false,
+      "description": "API 文檔端點"
+    },
+    "backend_swagger_json": {
+      "url": "https://morningai-mvp.onrender.com/api/swagger.json",
+      "method": "GET",
+      "timeout": 15,
+      "expected_status": 200,
+      "check_interval": 300,
+      "critical": false,
+      "description": "Swagger JSON 規格"
+    },
+    "frontend_app": {
+      "url": "https://morningai-mvp-web.vercel.app",
+      "method": "GET",
+      "timeout": 15,
+      "expected_status": 200,
+      "check_interval": 300,
+      "critical": true,
+      "description": "前端應用程式"
+    },
+    "auth_login": {
+      "url": "https://morningai-mvp.onrender.com/api/auth/login",
+      "method": "POST",
+      "timeout": 10,
+      "expected_status": 400,
+      "check_interval": 600,
+      "critical": false,
+      "description": "認證登入端點（預期 400 因為沒有提供憑證）",
+      "data": {}
+    },
+    "admin_users": {
+      "url": "https://morningai-mvp.onrender.com/api/admin/users",
+      "method": "GET",
+      "timeout": 10,
+      "expected_status": 401,
+      "check_interval": 600,
+      "critical": false,
+      "description": "管理員用戶端點（預期 401 因為未認證）"
+    }
+  },
+  "alert_config": {
+    "enabled": true,
+    "email_recipients": [
+      "admin@morningai.com"
+    ],
+    "webhook_url": null,
+    "slack_webhook": null,
+    "failure_threshold": 3,
+    "recovery_notification": true
+  },
+  "monitoring_settings": {
+    "max_history_records": 1000,
+    "log_level": "INFO",
+    "health_check_timeout": 30,
+    "concurrent_checks": 5,
+    "retry_failed_checks": true,
+    "retry_count": 2,
+    "retry_delay": 5
+  },
+  "dashboard_config": {
+    "refresh_interval": 30,
+    "show_response_times": true,
+    "show_error_details": true,
+    "chart_history_hours": 24
+  }
+}
