@@ -130,7 +130,7 @@ def health_check():
     # 默認健康檢查回應，包含文檔訪問信息
     return jsonify({
         "ok": True, 
-        "message": "Service is healthy",
+        "message": "API is healthy",
         "version": "1.0.3",
         "timestamp": "2025-09-20T05:25:00Z",
         "docs_access": {
@@ -163,10 +163,13 @@ CORS(app, origins=[
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get("DATABASE_URL", "sqlite:///app.db")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
+# 配置密鑰
+secret_key = os.environ.get("JWT_SECRET_KEY", "super-secret")
+app.config["SECRET_KEY"] = secret_key
+app.config["SECURITY_PASSWORD_SALT"] = os.environ.get("SECURITY_PASSWORD_SALT", "email-verification-salt")
+
 # 配置 JWT
-app.config["JWT_SECRET_KEY"] = os.environ.get(
-    "JWT_SECRET_KEY", "super-secret"
-)  # 替換為您的秘密金鑰
+app.config["JWT_SECRET_KEY"] = secret_key
 app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=1)
 app.config["JWT_TOKEN_LOCATION"] = ["headers"]
 app.config["JWT_HEADER_NAME"] = "Authorization"
