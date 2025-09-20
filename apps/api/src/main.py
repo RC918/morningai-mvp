@@ -93,7 +93,29 @@ app.register_blueprint(simple_docs_bp)
 @app.route("/")
 def hello():
     """根路徑歡迎訊息"""
-    return jsonify({"message": "Welcome to MorningAI MVP API!"})
+    return jsonify({
+        "message": "Welcome to MorningAI MVP API!",
+        "version": "1.0.1",
+        "timestamp": "2025-09-20T04:55:00Z",
+        "docs_available": True,
+        "endpoints": {
+            "health": "/health",
+            "docs": "/docs",
+            "api_docs": "/api-docs",
+            "documentation": "/documentation"
+        }
+    })
+
+@app.route("/test-deployment")
+def test_deployment():
+    """測試部署狀態"""
+    import datetime
+    return jsonify({
+        "status": "deployed",
+        "timestamp": datetime.datetime.utcnow().isoformat(),
+        "routes_count": len(list(app.url_map.iter_rules())),
+        "docs_route_exists": any(rule.rule == '/docs' for rule in app.url_map.iter_rules())
+    })
 
 @app.route("/docs")
 @app.route("/docs/")
@@ -176,6 +198,24 @@ def api_docs():
 </html>
     """
     return docs_html
+
+@app.route("/api-docs")
+@app.route("/api-docs/")
+def api_docs_alt():
+    """API 文檔頁面 (備選路徑)"""
+    return api_docs()
+
+@app.route("/documentation")
+@app.route("/documentation/")
+def documentation():
+    """API 文檔頁面 (第三備選路徑)"""
+    return api_docs()
+
+@app.route("/swagger")
+@app.route("/swagger/")
+def swagger_docs():
+    """Swagger 風格的 API 文檔"""
+    return api_docs()
 
 def print_routes():
     """啟動時列印所有路由，方便調試 404/405 問題"""
