@@ -284,9 +284,16 @@ app.register_blueprint(webhook_bp, url_prefix="/api")
 app.register_blueprint(audit_log_bp, url_prefix="/api")
 
 # 註冊 API 文檔
+# 導入 API 文檔
+from src.api_docs import docs_bp
 from src.simple_docs import simple_docs_bp
 
+# 註冊 API 文檔 Blueprint
+app.register_blueprint(docs_bp)
 app.register_blueprint(simple_docs_bp)
+
+# 導入文檔化路由（這會註冊所有 API 文檔）
+import src.documented_routes
 
 
 @app.route("/")
