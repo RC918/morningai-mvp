@@ -66,6 +66,8 @@ class TwoFactorService(TwoFactorServiceInterface):
                 issuer_name=issuer
             )
             
+            print(f"[2FA_SERVICE] Generating QR code for URI: {provisioning_uri}")
+            
             # 生成 QR code
             qr = qrcode.QRCode(
                 version=1,
@@ -82,12 +84,18 @@ class TwoFactorService(TwoFactorServiceInterface):
             # 轉換為 Base64
             buffer = BytesIO()
             img.save(buffer, format='PNG')
-            img_str = base64.b64encode(buffer.getvalue()).decode()
+            buffer.seek(0)  # 重置緩衝區指針
+            img_bytes = buffer.getvalue()
+            img_str = base64.b64encode(img_bytes).decode('utf-8')
+            
+            print(f"[2FA_SERVICE] QR code generated successfully, length: {len(img_str)}")
             
             return f"data:image/png;base64,{img_str}"
             
         except Exception as e:
             print(f"[2FA_SERVICE] Failed to generate QR code: {e}")
+            import traceback
+            traceback.print_exc()
             return ""
     
     def verify_otp(self, secret: str, otp_code: str) -> bool:
