@@ -19,7 +19,7 @@ class TestRBACAccess:
         
     def test_admin_access_allowed(self):
         """Test that admin users can access admin endpoints."""
-        with patch('src.decorators.verify_jwt_token') as mock_verify:
+        with patch('src.decorators.token_required') as mock_verify:
             mock_verify.return_value = {'role': 'admin', 'user_id': 1}
             
             # Mock admin endpoint access
@@ -37,7 +37,7 @@ class TestRBACAccess:
                 
     def test_user_access_denied_to_admin_endpoints(self):
         """Test that regular users cannot access admin endpoints."""
-        with patch('src.decorators.verify_jwt_token') as mock_verify:
+        with patch('src.decorators.token_required') as mock_verify:
             mock_verify.return_value = {'role': 'user', 'user_id': 2}
             
             # Mock admin endpoint access denial
@@ -55,7 +55,7 @@ class TestRBACAccess:
                 
     def test_user_access_allowed_to_user_endpoints(self):
         """Test that regular users can access user endpoints."""
-        with patch('src.decorators.verify_jwt_token') as mock_verify:
+        with patch('src.decorators.token_required') as mock_verify:
             mock_verify.return_value = {'role': 'user', 'user_id': 2}
             
             # Mock user endpoint access
@@ -86,7 +86,7 @@ class TestRBACAccess:
             
     def test_invalid_token_access_denied(self):
         """Test that requests with invalid tokens are denied."""
-        with patch('src.decorators.verify_jwt_token') as mock_verify:
+        with patch('src.decorators.token_required') as mock_verify:
             mock_verify.side_effect = Exception("Invalid token")
             
             with patch('requests.get') as mock_get:
@@ -107,7 +107,7 @@ class TestRoleValidation:
     
     def test_admin_role_validation(self):
         """Test admin role validation."""
-        with patch('src.decorators.verify_jwt_token') as mock_verify:
+        with patch('src.decorators.token_required') as mock_verify:
             mock_verify.return_value = {'role': 'admin', 'user_id': 1}
             
             # Test role validation logic
@@ -117,7 +117,7 @@ class TestRoleValidation:
             
     def test_user_role_validation(self):
         """Test user role validation."""
-        with patch('src.decorators.verify_jwt_token') as mock_verify:
+        with patch('src.decorators.token_required') as mock_verify:
             mock_verify.return_value = {'role': 'user', 'user_id': 2}
             
             # Test role validation logic
@@ -127,7 +127,7 @@ class TestRoleValidation:
             
     def test_unknown_role_handling(self):
         """Test handling of unknown roles."""
-        with patch('src.decorators.verify_jwt_token') as mock_verify:
+        with patch('src.decorators.token_required') as mock_verify:
             mock_verify.return_value = {'role': 'unknown', 'user_id': 3}
             
             # Test unknown role handling

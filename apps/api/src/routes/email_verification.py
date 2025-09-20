@@ -3,7 +3,7 @@ from flask import Blueprint, request, jsonify, current_app
 from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadTimeSignature
 from src.models.user import User, db
 from src.decorators import token_required
-from src.audit_log import audit_log, AuditActions
+# from src.audit_log import audit_log, AuditActions
 
 email_verification_bp = Blueprint("email_verification", __name__)
 
@@ -26,7 +26,6 @@ def confirm_verification_token(token, expiration=3600):
 
 @email_verification_bp.route("/auth/email/send-verification", methods=['POST'])
 @token_required
-@audit_log(action=AuditActions.EMAIL_VERIFICATION_SENT, resource_type="user")
 def send_verification_email(current_user):
     if current_user.is_email_verified:
         return jsonify({"message": "Email is already verified."}), 400
@@ -39,7 +38,6 @@ def send_verification_email(current_user):
 
 
 @email_verification_bp.route("/auth/email/verify/<token>", methods=['GET'])
-@audit_log(action=AuditActions.EMAIL_VERIFIED, resource_type="user")
 def verify_email(token):
     email = confirm_verification_token(token)
     if not email:
@@ -56,4 +54,38 @@ def verify_email(token):
     db.session.commit()
 
     return jsonify({"message": "Email verified successfully."}), 200
+
+
+@email_verification_bp.route("/auth/verify", methods=['GET'])
+def verify_email_status():
+    """檢查 Email 驗證狀態"""
+    token = request.args.get('token')
+    if not token:
+        return jsonify({"message": "Missing verification token"}), 400
+    
+    email = confirm_verification_token(token)
+    if not email:
+        return jsonify({"message": "The verification link is invalid or has expired."}), 400
+
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({"message": "User not found."}), 404
+
+    if user.is_email_verified:
+        return jsonify({"message": "Email is already verified."}), 400
+
+    user.is_email_verified = True
+    db.session.commit()
+
+    return jsonify({"message": "Email verified successfully."}), 200
+
+
+@email_verification_bp.route("/auth/email-status", methods=['GET'])
+@token_required
+def get_email_status(current_user):
+    """獲取當前用戶的 Email 驗證狀態"""
+    return jsonify({
+        "email": current_user.email,
+        "is_verified": current_user.is_email_verified
+    }), 200
 

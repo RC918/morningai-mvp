@@ -5,6 +5,7 @@ from flask import Blueprint, current_app, jsonify, request
 
 from src.decorators import token_required
 from src.models.jwt_blacklist import JWTBlacklist
+from src.database import db
 
 jwt_blacklist_bp = Blueprint("jwt_blacklist", __name__)
 
