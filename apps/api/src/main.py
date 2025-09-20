@@ -92,18 +92,41 @@ app.register_blueprint(simple_docs_bp)
 
 @app.route("/")
 def hello():
-    """根路徑歡迎訊息"""
+    """根路徑歡迎訊息，支援 HTML 文檔"""
+    # 檢查格式參數
+    format_param = request.args.get('format', '').lower()
+    if format_param == 'html':
+        return get_api_docs_html()
+    
+    # 檢查 Accept 標頭
+    accept_header = request.headers.get('Accept', '')
+    if 'text/html' in accept_header and 'application/json' not in accept_header:
+        return get_api_docs_html()
+    
+    # 默認返回 JSON
     return jsonify({
         "message": "Welcome to MorningAI MVP API!",
-        "version": "1.0.1",
-        "timestamp": "2025-09-20T04:55:00Z",
+        "version": "1.0.2", 
+        "timestamp": "2025-09-20T05:15:00Z",
         "docs_available": True,
+        "docs_access": [
+            "Visit https://morningai-mvp.onrender.com/?format=html",
+            "Visit with browser (HTML Accept header)",
+            "Use /docs endpoint (when deployed)"
+        ],
         "endpoints": {
             "health": "/health",
-            "docs": "/docs",
-            "api_docs": "/api-docs",
-            "documentation": "/documentation"
-        }
+            "auth": {
+                "register": "/api/register",
+                "login": "/api/login", 
+                "logout": "/api/auth/logout",
+                "profile": "/api/profile"
+            },
+            "admin": {
+                "users": "/api/admin/users"
+            }
+        },
+        "status": "✅ JWT Blacklist Fixed | ❌ /docs endpoint pending deployment"
     })
 
 @app.route("/test-deployment")
@@ -117,10 +140,8 @@ def test_deployment():
         "docs_route_exists": any(rule.rule == '/docs' for rule in app.url_map.iter_rules())
     })
 
-@app.route("/docs")
-@app.route("/docs/")
-def api_docs():
-    """API 文檔頁面"""
+def get_api_docs_html():
+    """獲取 API 文檔 HTML 內容"""
     docs_html = """
 <!DOCTYPE html>
 <html lang="zh-TW">
@@ -199,23 +220,29 @@ def api_docs():
     """
     return docs_html
 
+@app.route("/docs")
+@app.route("/docs/")
+def api_docs():
+    """API 文檔頁面"""
+    return get_api_docs_html()
+
 @app.route("/api-docs")
 @app.route("/api-docs/")
 def api_docs_alt():
     """API 文檔頁面 (備選路徑)"""
-    return api_docs()
+    return get_api_docs_html()
 
 @app.route("/documentation")
 @app.route("/documentation/")
 def documentation():
     """API 文檔頁面 (第三備選路徑)"""
-    return api_docs()
+    return get_api_docs_html()
 
 @app.route("/swagger")
 @app.route("/swagger/")
 def swagger_docs():
     """Swagger 風格的 API 文檔"""
-    return api_docs()
+    return get_api_docs_html()
 
 def print_routes():
     """啟動時列印所有路由，方便調試 404/405 問題"""
