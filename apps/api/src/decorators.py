@@ -1,6 +1,9 @@
-from functools import wraps
+"""
+認證和授權裝飾器模組
+"""
 
 import jwt
+from functools import wraps
 from flask import current_app, jsonify, request
 
 from src.models.jwt_blacklist import JWTBlacklist
@@ -24,18 +27,18 @@ def require_role(required_role):
             # 獲取 Authorization header
             auth_header = request.headers.get("Authorization")
             if not auth_header:
-                return jsonify({"error": "Missing authorization header"}), 401
+                return jsonify({"error": "token is missing"}), 401
 
             # 檢查 Bearer token 格式
             try:
                 token_type, token = auth_header.split(" ")
                 if token_type.lower() != "bearer":
                     return (
-                        jsonify({"error": "Invalid authorization header format"}),
+                        jsonify({"error": "token is missing"}),
                         401,
                     )
             except ValueError:
-                return jsonify({"error": "Invalid authorization header format"}), 401
+                return jsonify({"error": "token is missing"}), 401
 
             try:
                 # 解碼 JWT
@@ -46,35 +49,36 @@ def require_role(required_role):
                 # 檢查 JWT 是否在黑名單中
                 jti = payload.get("jti")
                 if jti and JWTBlacklist.is_blacklisted(jti):
-                    return jsonify({"error": "Token has been revoked"}), 401
+                    return jsonify({"error": "token is invalid"}), 401
 
-                # 獲取用戶角色
-                user_role = payload.get("role")
-                user_id = payload.get("sub") or payload.get("user_id")
-                if isinstance(user_id, str):
-                    user_id = int(user_id)  # 轉換字符串為整數
+                # 檢查用戶是否存在
+                user_id = payload.get("user_id")
+                if not user_id:
+                    return jsonify({"error": "token is invalid"}), 401
 
-                if not user_role or not user_id:
-                    return jsonify({"error": "Invalid token payload"}), 401
+                user = User.query.get(user_id)
+                if not user:
+                    return jsonify({"error": "token is invalid"}), 401
 
-                # 檢查角色權限
-                if required_role == "admin" and user_role != "admin":
-                    return jsonify({"error": "forbidden"}), 403
+                # 檢查用戶是否啟用
+                if not user.is_active:
+                    return jsonify({"error": "user is inactive"}), 401
 
-                # 將用戶信息添加到請求上下文
-                request.current_user = User.query.get(user_id)
-                if not request.current_user:
-                    return jsonify({"error": "User not found"}), 401
+                # 檢查權限
+                if required_role == "admin" and user.role != "admin":
+                    return jsonify({"error": "admin access required"}), 403
 
-                return f(request.current_user, *args, **kwargs)
+                # 將用戶資訊添加到 request 中
+                request.current_user = user
+
+                return f(*args, **kwargs)
 
             except jwt.ExpiredSignatureError:
-                return jsonify({"error": "Token has expired"}), 401
+                return jsonify({"error": "token is invalid"}), 401
             except jwt.InvalidTokenError:
-                return jsonify({"error": "Invalid token"}), 401
+                return jsonify({"error": "token is invalid"}), 401
             except Exception as e:
-                current_app.logger.error(f"Role validation error: {str(e)}")
-                return jsonify({"error": f"Token validation failed: {str(e)}"}), 401
+                return jsonify({"error": "token is invalid"}), 401
 
         return decorated_function
 
@@ -83,80 +87,131 @@ def require_role(required_role):
 
 def token_required(f):
     """
-    JWT Token 驗證裝飾器（包含黑名單檢查）
+    JWT Token 驗證裝飾器
+    
+    Args:
+        f: 被裝飾的函數
+        
+    Returns:
+        decorated_function: 裝飾後的函數
     """
-
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        # 獲取 Authorization header
         auth_header = request.headers.get("Authorization")
         if not auth_header:
-            return jsonify({"error": "Missing authorization header"}), 401
+            return jsonify({"error": "token is missing"}), 401
 
+        # 檢查 Bearer token 格式
         try:
             token_type, token = auth_header.split(" ")
             if token_type.lower() != "bearer":
-                return jsonify({"error": "Invalid authorization header format"}), 401
+                return jsonify({"error": "token is missing"}), 401
         except ValueError:
-            return jsonify({"error": "Invalid authorization header format"}), 401
+            return jsonify({"error": "token is missing"}), 401
 
         try:
+            # 解碼 JWT
             payload = jwt.decode(
                 token, current_app.config["JWT_SECRET_KEY"], algorithms=["HS256"]
             )
 
-            user_id = payload.get("sub") or payload.get("user_id")
-            if isinstance(user_id, str):
-                user_id = int(user_id)  # 轉換字符串為整數
-            jti = payload.get("jti")
-
-            if not user_id:
-                return jsonify({"error": "Invalid token payload"}), 401
-
             # 檢查 JWT 是否在黑名單中
-            print(f"[TOKEN_REQUIRED] Checking blacklist for JTI: {jti}")
+            jti = payload.get("jti")
             if jti and JWTBlacklist.is_blacklisted(jti):
-                print(f"[TOKEN_REQUIRED] Token revoked: {jti}")
-                return jsonify({"error": "Token has been revoked"}), 401
-            elif not jti:
-                print(f"[TOKEN_REQUIRED] Warning: Token has no JTI")
-            else:
-                print(f"[TOKEN_REQUIRED] Token is valid: {jti}")
+                return jsonify({"error": "token is invalid"}), 401
 
-            # 將用戶信息添加到請求上下文
-            request.current_user = User.query.get(user_id)
-            if not request.current_user:
-                return jsonify({"error": "User not found"}), 401
+            # 檢查用戶是否存在
+            user_id = payload.get("user_id")
+            if not user_id:
+                return jsonify({"error": "token is invalid"}), 401
 
-            # 檢查 token 是否在用戶設置的“全部登出”時間點之前發行
-            if request.current_user.tokens_valid_since:
-                if "iat" not in payload:
-                    return jsonify({"error": "Token is missing 'iat' claim"}), 401
+            user = User.query.get(user_id)
+            if not user:
+                return jsonify({"error": "token is invalid"}), 401
 
-                token_iat = datetime.fromtimestamp(payload["iat"])
-                if token_iat < request.current_user.tokens_valid_since:
-                    return (
-                        jsonify({"error": "Token has been revoked by logout all"}),
-                        401,
-                    )
+            # 檢查用戶是否啟用
+            if not user.is_active:
+                return jsonify({"error": "user is inactive"}), 401
 
-            return f(request.current_user, *args, **kwargs)
+            # 將用戶資訊添加到 request 中
+            request.current_user = user
+
+            return f(*args, **kwargs)
 
         except jwt.ExpiredSignatureError:
-            return jsonify({"error": "Token has expired"}), 401
+            return jsonify({"error": "token is invalid"}), 401
         except jwt.InvalidTokenError:
-            return jsonify({"error": "Invalid token"}), 401
+            return jsonify({"error": "token is invalid"}), 401
         except Exception as e:
-            current_app.logger.error(f"Token validation error: {str(e)}")
-            return jsonify({"error": f"Token validation failed: {str(e)}"}), 401
+            return jsonify({"error": "token is invalid"}), 401
 
     return decorated_function
 
 
-def get_current_user():
+def admin_required(f):
     """
-    獲取當前登錄用戶信息
-
+    管理員權限裝飾器
+    
+    Args:
+        f: 被裝飾的函數
+        
     Returns:
-        User: 用戶對象
+        decorated_function: 裝飾後的函數
     """
-    return getattr(request, "current_user", None)
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        # 獲取 Authorization header
+        auth_header = request.headers.get("Authorization")
+        if not auth_header:
+            return jsonify({"error": "token is missing"}), 401
+
+        # 檢查 Bearer token 格式
+        try:
+            token_type, token = auth_header.split(" ")
+            if token_type.lower() != "bearer":
+                return jsonify({"error": "token is missing"}), 401
+        except ValueError:
+            return jsonify({"error": "token is missing"}), 401
+
+        try:
+            # 解碼 JWT
+            payload = jwt.decode(
+                token, current_app.config["JWT_SECRET_KEY"], algorithms=["HS256"]
+            )
+
+            # 檢查 JWT 是否在黑名單中
+            jti = payload.get("jti")
+            if jti and JWTBlacklist.is_blacklisted(jti):
+                return jsonify({"error": "token is invalid"}), 401
+
+            # 檢查用戶是否存在
+            user_id = payload.get("user_id")
+            if not user_id:
+                return jsonify({"error": "token is invalid"}), 401
+
+            user = User.query.get(user_id)
+            if not user:
+                return jsonify({"error": "token is invalid"}), 401
+
+            # 檢查用戶是否啟用
+            if not user.is_active:
+                return jsonify({"error": "user is inactive"}), 401
+
+            # 檢查管理員權限
+            if user.role != "admin":
+                return jsonify({"error": "admin access required"}), 403
+
+            # 將用戶資訊添加到 request 中
+            request.current_user = user
+
+            return f(*args, **kwargs)
+
+        except jwt.ExpiredSignatureError:
+            return jsonify({"error": "token is invalid"}), 401
+        except jwt.InvalidTokenError:
+            return jsonify({"error": "token is invalid"}), 401
+        except Exception as e:
+            return jsonify({"error": "token is invalid"}), 401
+
+    return decorated_function
