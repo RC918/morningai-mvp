@@ -161,14 +161,15 @@ jobs:
       - name: Upload API Release Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: release_artifacts_api
+          name: release_artifacts_api_${{ env.DEPLOY_TAG }}
           path: |
-            release_log.txt
-            health_after_release.txt
+            apps/api/release_log.txt
+            apps/api/health_after_release.txt
             apps/api/api_dev.log
             apps/api/api-docker-image.tar
             apps/api/migration-scripts.tar.gz
           if-no-files-found: error
+          retention-days: 30
 
   release_web:
     runs-on: ubuntu-latest
@@ -221,11 +222,12 @@ jobs:
       - name: Upload Web Release Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: release_artifacts_web
+          name: release_artifacts_web_${{ env.DEPLOY_TAG }}
           path: |
-            release_log.txt
+            apps/web/release_log.txt
             apps/web/web-build.tar.gz
           if-no-files-found: error
+          retention-days: 30
 
   deployment_proof:
     runs-on: ubuntu-latest
@@ -262,6 +264,7 @@ jobs:
       - name: Upload Deployment Proof
         uses: actions/upload-artifact@v4
         with:
-          name: deployment_proof
+          name: deployment_proof_${{ env.DEPLOY_TAG }}
           path: DEPLOYMENT_PROOF.md
           if-no-files-found: error
+          retention-days: 90

@@ -31,8 +31,104 @@ jobs:
             echo "Running environment check script..." | tee -a env_check.txt
             cd ops/env/scripts
             node check_env.mjs | tee -a ../../../env_check.txt
+          elif [ -f "ops/env/api.json" ] && [ -f "ops/env/web.json" ]; then
+            echo "Using ops/env configuration files..." | tee -a env_check.txt
+            
+            # Check API environment variables from ops/env/api.json
+            echo "Checking API environment variables..." | tee -a env_check.txt
+            API_VARS=$(cat ops/env/api.json | jq -r '.required[]' 2>/dev/null || echo "")
+            MISSING_API_VARS=""
+            
+            for var in $API_VARS; do
+              case $var in
+                "DATABASE_URL")
+                  if [ -z "${{ secrets.DATABASE_URL }}" ]; then
+                    MISSING_API_VARS="$MISSING_API_VARS $var"
+                  fi
+                  ;;
+                "JWT_SECRET")
+                  if [ -z "${{ secrets.JWT_SECRET }}" ]; then
+                    MISSING_API_VARS="$MISSING_API_VARS $var"
+                  fi
+                  ;;
+                "SB_SERVICE_ROLE_KEY")
+                  if [ -z "${{ secrets.SB_SERVICE_ROLE_KEY }}" ]; then
+                    MISSING_API_VARS="$MISSING_API_VARS $var"
+                  fi
+                  ;;
+                "SB_JWT_SECRET")
+                  if [ -z "${{ secrets.SB_JWT_SECRET }}" ]; then
+                    MISSING_API_VARS="$MISSING_API_VARS $var"
+                  fi
+                  ;;
+                *)
+                  echo "Unknown API variable: $var" | tee -a env_check.txt
+                  ;;
+              esac
+            done
+            
+            # Check Web environment variables from ops/env/web.json
+            echo "Checking Web environment variables..." | tee -a env_check.txt
+            WEB_VARS=$(cat ops/env/web.json | jq -r '.required[]' 2>/dev/null || echo "")
+            MISSING_WEB_VARS=""
+            
+            for var in $WEB_VARS; do
+              case $var in
+                "VITE_API_BASE_URL")
+                  if [ -z "${{ vars.VITE_API_BASE_URL }}" ]; then
+                    MISSING_WEB_VARS="$MISSING_WEB_VARS $var"
+                  fi
+                  ;;
+                "VITE_SB_URL")
+                  if [ -z "${{ vars.VITE_SB_URL }}" ]; then
+                    MISSING_WEB_VARS="$MISSING_WEB_VARS $var"
+                  fi
+                  ;;
+                "VITE_SB_ANON_KEY")
+                  if [ -z "${{ vars.VITE_SB_ANON_KEY }}" ]; then
+                    MISSING_WEB_VARS="$MISSING_WEB_VARS $var"
+                  fi
+                  ;;
+                *)
+                  echo "Unknown Web variable: $var" | tee -a env_check.txt
+                  ;;
+              esac
+            done
+            
+            # Check deployment secrets
+            echo "Checking deployment secrets..." | tee -a env_check.txt
+            MISSING_DEPLOY_VARS=""
+            if [ -z "${{ secrets.RENDER_API_KEY }}" ]; then
+              MISSING_DEPLOY_VARS="$MISSING_DEPLOY_VARS RENDER_API_KEY"
+            fi
+            if [ -z "${{ secrets.RENDER_SERVICE_ID }}" ]; then
+              MISSING_DEPLOY_VARS="$MISSING_DEPLOY_VARS RENDER_SERVICE_ID"
+            fi
+            if [ -z "${{ secrets.VERCEL_TOKEN }}" ]; then
+              MISSING_DEPLOY_VARS="$MISSING_DEPLOY_VARS VERCEL_TOKEN"
+            fi
+            if [ -z "${{ secrets.VERCEL_ORG_ID }}" ]; then
+              MISSING_DEPLOY_VARS="$MISSING_DEPLOY_VARS VERCEL_ORG_ID"
+            fi
+            if [ -z "${{ secrets.VERCEL_PROJECT_ID }}" ]; then
+              MISSING_DEPLOY_VARS="$MISSING_DEPLOY_VARS VERCEL_PROJECT_ID"
+            fi
+            
+            ALL_MISSING="$MISSING_API_VARS$MISSING_WEB_VARS$MISSING_DEPLOY_VARS"
+            if [ -n "$ALL_MISSING" ]; then
+              echo "Missing environment variables:" | tee -a env_check.txt
+              echo "  API: $MISSING_API_VARS" | tee -a env_check.txt
+              echo "  Web: $MISSING_WEB_VARS" | tee -a env_check.txt
+              echo "  Deploy: $MISSING_DEPLOY_VARS" | tee -a env_check.txt
+              echo "ENV_CHECK_RESULT=failure" >> $GITHUB_ENV
+              echo "MISSING_VARS=$ALL_MISSING" >> $GITHUB_ENV
+            else
+              echo "All required environment variables are present" | tee -a env_check.txt
+              echo "ENV_CHECK_RESULT=success" >> $GITHUB_ENV
+              echo "MISSING_VARS=None" >> $GITHUB_ENV
+            fi
           else
-            echo "Environment check script not found, creating basic check..." | tee -a env_check.txt
+            echo "Environment check configuration not found, using basic check..." | tee -a env_check.txt
             
             # Basic environment variable check
             MISSING_VARS=""
